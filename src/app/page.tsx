@@ -1,65 +1,63 @@
-import Image from "next/image";
+// src/app/page.tsx
+'use client'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { login, register, getRol } from '@/lib/supabase'
+import '@/styles/pvem.css'
 
-export default function Home() {
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [pass, setPass]   = useState('')
+  const [nombre, setNombre] = useState('')
+  const [modo, setModo]   = useState<'login'|'registro'>('login')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  async function handleLogin() {
+    if (!email || !pass) { setError('Ingresa usuario y contraseña'); return }
+    setLoading(true)
+    const { error: err } = await login(email, pass)
+    if (err) { setError('Usuario o contraseña incorrectos'); setLoading(false); return }
+    const rol = await getRol()
+    router.push(rol === 'admin' ? '/admin' : '/usuario')
+  }
+
+  async function handleRegister() {
+    if (!email || !pass || !nombre) { setError('Todos los campos son requeridos'); return }
+    setLoading(true)
+    const { error: err } = await register(email, pass, nombre)
+    if (err) { setError(err.message); setLoading(false); return }
+    setError('')
+    alert('Cuenta creada. Ya puedes iniciar sesión.')
+    setModo('login')
+    setLoading(false)
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    // Pegar aquí el HTML de tu login-card del HTML actual
+    // Cambiar onclick="doLogin()" por onClick={handleLogin}
+    // Cambiar onclick="toggleRegister()" por onClick={()=>setModo(...)}
+    // Los inputs: <input value={email} onChange={e=>setEmail(e.target.value)} />
+    <div className="login-screen">
+      <div className="login-card card-animate">
+        <div className="card-top">
+          <img src="/mascota.png" className="mascot-float" alt="Mascota PVEM" />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="login-form">
+          <input className="login-input" value={email}
+            onChange={e=>setEmail(e.target.value)} placeholder="USUARIO / EMAIL" />
+          <input className="login-input" type="password" value={pass}
+            onChange={e=>setPass(e.target.value)} placeholder="CONTRASEÑA" />
+          {error && <p className="login-error">{error}</p>}
+          <button className="btn-ingresar" onClick={handleLogin} disabled={loading}>
+            {loading ? 'Entrando...' : 'INGRESAR'}
+          </button>
+          <button className="btn-registrar" onClick={()=>setModo(m=>m==='login'?'registro':'login')}>
+            {modo==='registro' ? '✕ CANCELAR' : '✦ CREAR CUENTA'}
+          </button>
         </div>
-      </main>
+      </div>
     </div>
-  );
+  )
 }
