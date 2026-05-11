@@ -6,12 +6,13 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith('/admin') ||
     req.nextUrl.pathname.startsWith('/usuario')
 
-  // Verificar si hay cookie de sesión de Supabase
-  const hasSession = req.cookies.getAll().some(c => 
-    c.name.includes('sb-') && c.name.includes('-auth-token')
-  )
+  if (!isProtected) return NextResponse.next()
 
-  if (!hasSession && isProtected) {
+  // Buscar cualquier cookie de sesión de Supabase
+  const cookies = req.cookies.getAll()
+  const hasSession = cookies.some(c => c.name.startsWith('sb-'))
+
+  if (!hasSession) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
