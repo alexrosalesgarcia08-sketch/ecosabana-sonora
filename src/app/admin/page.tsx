@@ -16,11 +16,13 @@ export default function AdminPage() {
   const [filterRol, setFilterRol] = useState('')
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) { router.push('/'); return }
-      loadPersonas()
-    })
-  }, [])
+  supabase.auth.getUser().then(async ({ data }) => {
+    if (!data.user) return
+    const { data: u } = await supabase
+      .from('usuarios').select('rol').eq('id', data.user.id).single()
+    window.location.href = u?.rol === 'admin' ? '/admin' : '/usuario'
+  })
+}, [])
 
   async function loadPersonas() {
     const { data } = await supabase
