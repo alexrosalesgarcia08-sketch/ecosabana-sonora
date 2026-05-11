@@ -1,15 +1,17 @@
-// src/app/page.tsx
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { login, register, getRol } from '@/lib/supabase'
-import '@/styles/pvem.css'
+import { createClient } from '@supabase/supabase-js'
+import '../styles/pvem.css'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
-  const [pass, setPass]   = useState('')
-  const [nombre, setNombre] = useState('')
-  const [modo, setModo]   = useState<'login'|'registro'>('login')
+  const [pass, setPass] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -17,44 +19,47 @@ export default function LoginPage() {
   async function handleLogin() {
     if (!email || !pass) { setError('Ingresa usuario y contraseña'); return }
     setLoading(true)
-    const { error: err } = await login(email, pass)
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password: pass })
     if (err) { setError('Usuario o contraseña incorrectos'); setLoading(false); return }
-    const rol = await getRol()
-    router.push(rol === 'admin' ? '/admin' : '/usuario')
-  }
-
-  async function handleRegister() {
-    if (!email || !pass || !nombre) { setError('Todos los campos son requeridos'); return }
-    setLoading(true)
-    const { error: err } = await register(email, pass, nombre)
-    if (err) { setError(err.message); setLoading(false); return }
-    setError('')
-    alert('Cuenta creada. Ya puedes iniciar sesión.')
-    setModo('login')
-    setLoading(false)
+    
+    const { data: usuario } = await supabase
+      .from('usuarios').select('rol').eq('id', data.user.id).single()
+    
+    if (usuario?.rol === 'admin') {
+      router.push('/admin')
+    } else {
+      router.push('/usuario')
+    }
   }
 
   return (
-    // Pegar aquí el HTML de tu login-card del HTML actual
-    // Cambiar onclick="doLogin()" por onClick={handleLogin}
-    // Cambiar onclick="toggleRegister()" por onClick={()=>setModo(...)}
-    // Los inputs: <input value={email} onChange={e=>setEmail(e.target.value)} />
-    <div className="login-screen">
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#3d5a09'}}>
       <div className="login-card card-animate">
         <div className="card-top">
-          <img src="/mascota.png" className="mascot-float" alt="Mascota PVEM" />
+          <div className="brand-row">
+            <div className="brand-logo">V</div>
+            <div className="brand-text">
+              <h1>ECOSABANA<br/><span>Sonora 2027</span></h1>
+              <p>Sistema de gestión de estructura PVEM</p>
+            </div>
+          </div>
         </div>
-        <div className="login-form">
-          <input className="login-input" value={email}
-            onChange={e=>setEmail(e.target.value)} placeholder="USUARIO / EMAIL" />
-          <input className="login-input" type="password" value={pass}
-            onChange={e=>setPass(e.target.value)} placeholder="CONTRASEÑA" />
-          {error && <p className="login-error">{error}</p>}
+        <div className="card-body">
+          <div className="section-title">Iniciar Sesión</div>
+          <div className="section-sub">Ingresa tus credenciales para continuar</div>
+          <div className="field">
+            <input value={email} onChange={e=>setEmail(e.target.value)}
+              placeholder="Correo electrónico" type="email"
+              onKeyDown={e=>e.key==='Enter'&&handleLogin()}/>
+          </div>
+          <div className="field">
+            <input value={pass} onChange={e=>setPass(e.target.value)}
+              placeholder="Contraseña" type="password"
+              onKeyDown={e=>e.key==='Enter'&&handleLogin()}/>
+          </div>
+          {error && <p style={{color:'#EF4135',fontSize:'12px',marginBottom:'8px'}}>{error}</p>}
           <button className="btn-ingresar" onClick={handleLogin} disabled={loading}>
             {loading ? 'Entrando...' : 'INGRESAR'}
-          </button>
-          <button className="btn-registrar" onClick={()=>setModo(m=>m==='login'?'registro':'login')}>
-            {modo==='registro' ? '✕ CANCELAR' : '✦ CREAR CUENTA'}
           </button>
         </div>
       </div>
