@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import '../../styles/pvem.css'
+import './globals.css'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
