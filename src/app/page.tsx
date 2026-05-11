@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import './globals.css'
  
@@ -16,7 +16,18 @@ export default function LoginPage() {
   const [apellido, setApellido] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [checking, setChecking] = useState(true)
   const [exito, setExito] = useState('')
+ 
+  // Si ya tiene sesión activa, redirigir directo
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { setChecking(false); return }
+      const { data: u } = await supabase
+        .from('usuarios').select('rol').eq('id', data.user.id).single()
+      window.location.href = u?.rol === 'admin' ? '/admin' : '/usuario'
+    })
+  }, [])
  
   async function handleLogin() {
     if (!email || !pass) { setError('Ingresa correo y contraseña'); return }
@@ -38,11 +49,7 @@ export default function LoginPage() {
       .eq('id', data.user.id)
       .single()
  
-    if (u?.rol === 'admin') {
-      window.location.href = '/admin'
-    } else {
-      window.location.href = '/usuario'
-    }
+    window.location.href = u?.rol === 'admin' ? '/admin' : '/usuario'
   }
  
   async function handleRegister() {
@@ -74,6 +81,16 @@ export default function LoginPage() {
     setModo('login')
     setNombre(''); setApellido(''); setEmail(''); setPass('')
   }
+ 
+  // Mostrar pantalla de carga mientras verifica sesión
+  if (checking) return (
+    <div style={{
+      minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
+      background:'#3d5a09'
+    }}>
+      <p style={{color:'#C8DF8E', fontWeight:700, fontSize:'16px'}}>Cargando...</p>
+    </div>
+  )
  
   return (
     <div style={{
@@ -210,4 +227,3 @@ export default function LoginPage() {
     </div>
   )
 }
- 
