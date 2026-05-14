@@ -34,41 +34,67 @@ export default function EditarPersona() {
   }, [id])
  
   async function loadPersona() {
-    const { data: p } = await supabase
-      .from('personas')
-      .select('*, ecoperadores(*), rcs_eco(*)')
-      .eq('id', id)
-      .single()
- 
-    if (!p) { router.push('/admin'); return }
- 
-    const eco = p.ecoperadores?.[0] || p.ecoperadores || {}
-    const rcs = p.rcs_eco || []
- 
-    const rcMap: any = { rcA:{nombre:'',tel:'',banco:'',cuenta:''}, rcB:{nombre:'',tel:'',banco:'',cuenta:''}, rcC:{nombre:'',tel:'',banco:'',cuenta:''}, rcD:{nombre:'',tel:'',banco:'',cuenta:''} }
-    rcs.forEach((rc: any) => {
-      if (rc.slot) rcMap['rc'+rc.slot] = { nombre: rc.nombre||'', tel: rc.tel||'', banco: rc.banco||'', cuenta: rc.cuenta||'' }
-    })
- 
-    setForm({
-      nombre: p.nombre||'',
-      celular: p.celular||'',
-      municipio: p.municipio||'',
-      distrito: p.distrito||'',
-      rol: p.rol||'Ecoperador',
-      banco: p.banco||'',
-      cuenta: p.cuenta||'',
-      folio: p.folio||'',
-      casilla: p.casilla||'',
-      status: p.status?.[0]||'Pendiente',
-      rg_nombre: eco.rg_nombre||'',
-      rg_tel: eco.rg_tel||'',
-      rg_banco: eco.rg_banco||'',
-      rg_cuenta: eco.rg_cuenta||'',
-      ...rcMap
-    })
-    setLoading(false)
+  // Cargar persona principal
+  const { data: p } = await supabase
+    .from('personas')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (!p) { router.push('/admin'); return }
+
+  // Cargar ecoperador por separado
+  const { data: eco } = await supabase
+    .from('ecoperadores')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  // Cargar RCs por separado
+  const { data: rcs } = await supabase
+    .from('rcs_eco')
+    .select('*')
+    .eq('eco_id', id)
+
+  const rcMap: any = {
+    rcA:{nombre:'',tel:'',banco:'',cuenta:''},
+    rcB:{nombre:'',tel:'',banco:'',cuenta:''},
+    rcC:{nombre:'',tel:'',banco:'',cuenta:''},
+    rcD:{nombre:'',tel:'',banco:'',cuenta:''}
   }
+
+  if (rcs) {
+    rcs.forEach((rc: any) => {
+      if (rc.slot) {
+        rcMap['rc'+rc.slot] = {
+          nombre: rc.nombre||'',
+          tel: rc.tel||'',
+          banco: rc.banco||'',
+          cuenta: rc.cuenta||''
+        }
+      }
+    })
+  }
+
+  setForm({
+    nombre: p.nombre||'',
+    celular: p.celular||'',
+    municipio: p.municipio||'',
+    distrito: p.distrito||'',
+    rol: p.rol||'Ecoperador',
+    banco: p.banco||'',
+    cuenta: p.cuenta||'',
+    folio: p.folio||'',
+    casilla: p.casilla||'',
+    status: p.status?.[0]||'Pendiente',
+    rg_nombre: eco?.rg_nombre||'',
+    rg_tel: eco?.rg_tel||'',
+    rg_banco: eco?.rg_banco||'',
+    rg_cuenta: eco?.rg_cuenta||'',
+    ...rcMap
+  })
+  setLoading(false)
+}
  
   const set = (k: string, v: string) => setForm((f: any) => ({...f, [k]: v}))
   const setRc = (slot: string, k: string, v: string) => setForm((f: any) => ({...f, ['rc'+slot]: {...f['rc'+slot], [k]: v}}))
