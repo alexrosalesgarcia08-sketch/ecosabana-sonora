@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { MASCOT_SRC } from '@/lib/constants'
-
+ 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
+ 
 export default function LoginPage() {
   const [modo, setModo] = useState<'login' | 'registro'>('login')
   const [email, setEmail] = useState('')
@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [checking, setChecking] = useState(true)
   const [exito, setExito] = useState('')
   const [showPass, setShowPass] = useState(false)
-
+ 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { setChecking(false); return }
@@ -27,7 +27,7 @@ export default function LoginPage() {
       window.location.href = u?.rol === 'admin' ? '/admin' : '/usuario'
     })
   }, [])
-
+ 
   async function handleLogin() {
     if (!email || !pass) { setError('Ingresa correo y contraseña'); return }
     setLoading(true); setError('')
@@ -36,7 +36,7 @@ export default function LoginPage() {
     const { data: u } = await supabase.from('usuarios').select('rol').eq('id', data.user.id).single()
     window.location.href = u?.rol === 'admin' ? '/admin' : '/usuario'
   }
-
+ 
   async function handleRegister() {
     if (!nombre || !apellido || !email || !pass) { setError('Todos los campos son requeridos'); return }
     if (pass.length < 6) { setError('Mínimo 6 caracteres'); return }
@@ -53,14 +53,14 @@ export default function LoginPage() {
     setLoading(false); setModo('login')
     setNombre(''); setApellido(''); setEmail(''); setPass('')
   }
-
+ 
   if (checking) return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
       background:'linear-gradient(135deg,#3d5a09 0%,#5a8012 50%,#00B15A 100%)' }}>
       <p style={{ color:'#C8DF8E', fontWeight:700, fontSize:'16px' }}>Cargando...</p>
     </div>
   )
-
+ 
   return (
     <div style={{
       minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
@@ -75,7 +75,7 @@ export default function LoginPage() {
         backgroundImage:'repeating-linear-gradient(135deg,#8FBF25 0px,#8FBF25 2px,transparent 2px,transparent 40px)',
         pointerEvents:'none',
       }}/>
-
+ 
       <div style={{
         background:'#fff',
         borderRadius:'32px',
@@ -85,7 +85,7 @@ export default function LoginPage() {
         position:'relative',
         animation:'cardIn .6s cubic-bezier(.22,1,.36,1) both',
       }}>
-
+ 
         {/* Top green section with mascot */}
         <div style={{
           background:'linear-gradient(135deg,#3d5a09 0%,#5a8012 50%,#4a9a2a 100%)',
@@ -98,7 +98,7 @@ export default function LoginPage() {
           {/* Yellow bottom line */}
           <div style={{ position:'absolute', bottom:0, left:0, right:0, height:'3px',
             background:'linear-gradient(90deg,#FFEE00,#C8DF8E,transparent)' }}/>
-
+ 
           {/* Logo + Title row */}
           <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>
             <div style={{
@@ -123,7 +123,7 @@ export default function LoginPage() {
               </div>
             </div>
           </div>
-
+ 
           {/* MASCOTA - grande, saliendo de la card */}
           <img
             src={MASCOT_SRC}
@@ -140,10 +140,10 @@ export default function LoginPage() {
             }}
           />
         </div>
-
+ 
         {/* Card body */}
         <div style={{ padding:'28px 28px 28px 28px', marginTop:'0' }}>
-
+ 
           {modo === 'login' ? (
             <>
               <div style={{ paddingLeft:'140px' }}>
@@ -154,7 +154,7 @@ export default function LoginPage() {
                   Ingresa tus credenciales para continuar
                 </div>
               </div>
-
+ 
               {exito && (
                 <div style={{ background:'rgba(0,177,90,.1)', border:'1.5px solid #00B15A',
                   borderRadius:'12px', padding:'10px 14px', marginBottom:'14px',
@@ -162,7 +162,7 @@ export default function LoginPage() {
                   {exito}
                 </div>
               )}
-
+ 
               {/* Email field */}
               <div style={{ position:'relative', marginBottom:'12px' }}>
                 <svg style={{ position:'absolute', left:'14px', top:'50%', transform:'translateY(-50%)',
@@ -185,7 +185,7 @@ export default function LoginPage() {
                   }}
                 />
               </div>
-
+ 
               {/* Password field */}
               <div style={{ position:'relative', marginBottom:'8px' }}>
                 <svg style={{ position:'absolute', left:'14px', top:'50%', transform:'translateY(-50%)',
@@ -214,9 +214,9 @@ export default function LoginPage() {
                   {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
-
+ 
               {error && <p style={{ color:'#EF4135', fontSize:'12px', fontWeight:700, marginBottom:'8px' }}>{error}</p>}
-
+ 
               <button onClick={handleLogin} disabled={loading} style={{
                 width:'100%', padding:'15px', border:'none', borderRadius:'14px',
                 background:'linear-gradient(135deg,#5a8012,#00B15A)',
@@ -228,7 +228,7 @@ export default function LoginPage() {
               }}>
                 {loading ? 'Entrando...' : 'INGRESAR'}
               </button>
-
+ 
               {/* Secure row */}
               <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
                 gap:'6px', marginTop:'12px', fontSize:'12px', color:'#a8b88a', fontWeight:700 }}>
@@ -238,13 +238,13 @@ export default function LoginPage() {
                 </svg>
                 Acceso seguro
               </div>
-
+ 
               <div style={{ display:'flex', alignItems:'center', gap:'12px', margin:'18px 0 0' }}>
                 <div style={{ flex:1, height:'1.5px', background:'#e8f0cc' }}/>
                 <span style={{ fontSize:'11px', color:'#a8b88a', fontWeight:800 }}>¿No tienes cuenta?</span>
                 <div style={{ flex:1, height:'1.5px', background:'#e8f0cc' }}/>
               </div>
-
+ 
               <button onClick={() => { setModo('registro'); setError('') }} style={{
                 width:'100%', padding:'13px', borderRadius:'14px', marginTop:'12px',
                 border:'2px solid #8FBF25', background:'#eef6d0',
@@ -259,7 +259,7 @@ export default function LoginPage() {
             <>
               <div style={{ fontSize:'20px', fontWeight:900, color:'#3d5a09', marginBottom:'4px' }}>Crear Cuenta</div>
               <div style={{ fontSize:'13px', color:'#6b7a50', fontWeight:600, marginBottom:'16px' }}>Completa tus datos</div>
-
+ 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'10px' }}>
                 <div>
                   <label style={{ fontSize:'11px', fontWeight:800, color:'#5a8012', textTransform:'uppercase', letterSpacing:'.06em', display:'block', marginBottom:'4px' }}>Nombre(s) *</label>
@@ -282,9 +282,9 @@ export default function LoginPage() {
                 <input type="password" placeholder="Contraseña" value={pass} onChange={e => setPass(e.target.value)}
                   style={{ width:'100%', padding:'10px 12px', border:'2px solid #dde8bb', borderRadius:'11px', fontSize:'13px', fontFamily:"'Nunito',sans-serif", fontWeight:600, color:'#3d5a09', background:'#fafff4', outline:'none', boxSizing:'border-box' }}/>
               </div>
-
+ 
               {error && <p style={{ color:'#EF4135', fontSize:'12px', fontWeight:700, marginBottom:'8px' }}>{error}</p>}
-
+ 
               <button onClick={handleRegister} disabled={loading} style={{
                 width:'100%', padding:'13px', border:'none', borderRadius:'14px',
                 background:'linear-gradient(135deg,#3d5a09,#5a8012)',
@@ -305,7 +305,7 @@ export default function LoginPage() {
           )}
         </div>
       </div>
-
+ 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
         @keyframes cardIn {
@@ -320,3 +320,4 @@ export default function LoginPage() {
     </div>
   )
 }
+ 
