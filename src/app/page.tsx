@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import './globals.css'
  
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,7 +8,7 @@ const supabase = createClient(
 )
  
 export default function LoginPage() {
-  const [modo, setModo] = useState<'login'|'registro'>('login')
+  const [modo, setModo] = useState<'login' | 'registro'>('login')
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [nombre, setNombre] = useState('')
@@ -18,13 +17,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
   const [exito, setExito] = useState('')
+  const [showPass, setShowPass] = useState(false)
  
-  // Si ya tiene sesión activa, redirigir directo
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { setChecking(false); return }
-      const { data: u } = await supabase
-        .from('usuarios').select('rol').eq('id', data.user.id).single()
+      const { data: u } = await supabase.from('usuarios').select('rol').eq('id', data.user.id).single()
       window.location.href = u?.rol === 'admin' ? '/admin' : '/usuario'
     })
   }, [])
@@ -32,79 +30,39 @@ export default function LoginPage() {
   async function handleLogin() {
     if (!email || !pass) { setError('Ingresa correo y contraseña'); return }
     setLoading(true); setError('')
- 
-    const { data, error: err } = await supabase.auth.signInWithPassword({
-      email, password: pass
-    })
- 
-    if (err) {
-      setError('Usuario o contraseña incorrectos')
-      setLoading(false)
-      return
-    }
- 
-    const { data: u } = await supabase
-      .from('usuarios')
-      .select('rol')
-      .eq('id', data.user.id)
-      .single()
- 
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password: pass })
+    if (err) { setError('Usuario o contraseña incorrectos'); setLoading(false); return }
+    const { data: u } = await supabase.from('usuarios').select('rol').eq('id', data.user.id).single()
     window.location.href = u?.rol === 'admin' ? '/admin' : '/usuario'
   }
  
   async function handleRegister() {
-    if (!nombre || !apellido || !email || !pass) {
-      setError('Todos los campos son requeridos'); return
-    }
-    if (pass.length < 6) {
-      setError('La contraseña debe tener mínimo 6 caracteres'); return
-    }
+    if (!nombre || !apellido || !email || !pass) { setError('Todos los campos son requeridos'); return }
+    if (pass.length < 6) { setError('La contraseña debe tener mínimo 6 caracteres'); return }
     setLoading(true); setError('')
- 
     const { data, error: err } = await supabase.auth.signUp({
       email, password: pass,
       options: { data: { nombre: nombre + ' ' + apellido } }
     })
- 
     if (err) { setError(err.message); setLoading(false); return }
- 
     if (data.user) {
-      await supabase.from('usuarios').insert({
-        id: data.user.id,
-        nombre: nombre + ' ' + apellido,
-        rol: 'usuario'
-      })
+      await supabase.from('usuarios').insert({ id: data.user.id, nombre: nombre + ' ' + apellido, rol: 'usuario' })
     }
- 
     setExito('¡Cuenta creada! Ya puedes iniciar sesión.')
-    setLoading(false)
-    setModo('login')
+    setLoading(false); setModo('login')
     setNombre(''); setApellido(''); setEmail(''); setPass('')
   }
  
-  // Mostrar pantalla de carga mientras verifica sesión
   if (checking) return (
-    <div style={{
-      minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
-      background:'#3d5a09'
-    }}>
-      <p style={{color:'#C8DF8E', fontWeight:700, fontSize:'16px'}}>Cargando...</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#3d5a09' }}>
+      <p style={{ color: '#C8DF8E', fontWeight: 700, fontSize: '16px' }}>Cargando...</p>
     </div>
   )
  
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#3d5a09',
-      backgroundImage: 'radial-gradient(ellipse at 15% 20%,rgba(143,191,37,.55) 0%,transparent 50%),radial-gradient(ellipse at 85% 80%,rgba(0,177,90,.45) 0%,transparent 50%)',
-      padding: '20px'
-    }}>
-      <div className="login-card card-animate">
+    <div id="authScreen">
+      <div className="login-card">
  
-        {/* Top verde */}
         <div className="card-top">
           <div className="brand-row">
             <div className="brand-logo">V</div>
@@ -122,37 +80,31 @@ export default function LoginPage() {
               <div className="section-sub">Ingresa tus credenciales para continuar</div>
  
               {exito && (
-                <div style={{
-                  background: 'rgba(0,177,90,.12)', border: '1.5px solid #00B15A',
-                  borderRadius: '12px', padding: '12px', marginBottom: '14px',
-                  fontSize: '13px', color: '#2e4a08', fontWeight: 700
-                }}>{exito}</div>
+                <div className="msg-ok show">{exito}</div>
               )}
  
               <div className="field">
-                <input
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="Correo electrónico"
-                  type="email"
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                />
-              </div>
-              <div className="field">
-                <input
-                  value={pass}
-                  onChange={e => setPass(e.target.value)}
-                  placeholder="Contraseña"
-                  type="password"
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                />
+                <svg className="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                </svg>
+                <input value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="Correo electrónico" type="email"
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()} />
               </div>
  
-              {error && (
-                <p style={{ color: '#EF4135', fontSize: '12px', marginBottom: '8px', fontWeight: 700 }}>
-                  {error}
-                </p>
-              )}
+              <div className="field">
+                <svg className="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <input value={pass} onChange={e => setPass(e.target.value)}
+                  placeholder="Contraseña" type={showPass ? 'text' : 'password'}
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+                <button className="eye-btn" type="button" onClick={() => setShowPass(!showPass)}>
+                  {showPass ? '🙈' : '👁️'}
+                </button>
+              </div>
+ 
+              {error && <p className="msg-err show">{error}</p>}
  
               <button className="btn-ingresar" onClick={handleLogin} disabled={loading}>
                 {loading ? 'Entrando...' : 'INGRESAR'}
@@ -165,6 +117,7 @@ export default function LoginPage() {
               </div>
  
               <div className="register-wrap">
+                <p className="register-label">Solicita acceso al sistema</p>
                 <button className="btn-registrar" onClick={() => { setModo('registro'); setError('') }}>
                   ✦ CREAR CUENTA
                 </button>
@@ -175,43 +128,31 @@ export default function LoginPage() {
               <div className="section-title">Crear Cuenta</div>
               <div className="section-sub">Completa tus datos para solicitar acceso</div>
  
-              <div className="register-panel open" style={{ padding: '0', border: 'none', marginTop: '0', animation: 'none' }}>
+              <div className="register-panel open" style={{ padding: 0, border: 'none', marginTop: 0, animation: 'none' }}>
                 <div className="reg-grid">
                   <div>
                     <label className="reg-label">Nombre(s) *</label>
-                    <input
-                      className="reg-input" type="text" placeholder="Nombre(s)"
-                      value={nombre} onChange={e => setNombre(e.target.value)}
-                    />
+                    <input className="reg-input" type="text" placeholder="Nombre(s)"
+                      value={nombre} onChange={e => setNombre(e.target.value)} />
                   </div>
                   <div>
                     <label className="reg-label">Apellidos *</label>
-                    <input
-                      className="reg-input" type="text" placeholder="Apellido(s)"
-                      value={apellido} onChange={e => setApellido(e.target.value)}
-                    />
+                    <input className="reg-input" type="text" placeholder="Apellido(s)"
+                      value={apellido} onChange={e => setApellido(e.target.value)} />
                   </div>
                   <div className="full">
                     <label className="reg-label">Correo electrónico *</label>
-                    <input
-                      className="reg-input" type="email" placeholder="correo@ejemplo.com"
-                      value={email} onChange={e => setEmail(e.target.value)}
-                    />
+                    <input className="reg-input" type="email" placeholder="correo@ejemplo.com"
+                      value={email} onChange={e => setEmail(e.target.value)} />
                   </div>
                   <div className="full">
-                    <label className="reg-label">Contraseña *</label>
-                    <input
-                      className="reg-input" type="password" placeholder="Mínimo 6 caracteres"
-                      value={pass} onChange={e => setPass(e.target.value)}
-                    />
+                    <label className="reg-label">Contraseña * (mín. 6 caracteres)</label>
+                    <input className="reg-input" type="password" placeholder="Contraseña segura"
+                      value={pass} onChange={e => setPass(e.target.value)} />
                   </div>
                 </div>
  
-                {error && (
-                  <p style={{ color: '#EF4135', fontSize: '12px', marginTop: '8px', fontWeight: 700 }}>
-                    {error}
-                  </p>
-                )}
+                {error && <p className="msg-err show">{error}</p>}
  
                 <button className="btn-crear-cuenta" onClick={handleRegister} disabled={loading}>
                   {loading ? 'Creando cuenta...' : '✓ CREAR CUENTA'}

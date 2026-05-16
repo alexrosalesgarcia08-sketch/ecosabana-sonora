@@ -1,8 +1,3 @@
-/* ================================================
-   ECOSABANA Sonora 2027 — Estilos PVEM
-   Copiar este archivo completo a: src/styles/pvem.css
-   ================================================ */
-
 /* ── PVEM Official Palette ──────────────────────────────────────
    Verde oscuro logo  #8FBF25  (Pantone 2286 C  C52 M0 Y99 K0)
    Verde hoja abajo   #00B15A  (Pantone 354     C80 M0 Y90 K0)
@@ -12,30 +7,16 @@
    Negro              #020000  (Pantone Black C  C40 M40 Y40 K100)
    ───────────────────────────────────────────────────────────── */
 :root{
-  --pvem-dark:   #5a8012;
-  --pvem-main:   #8FBF25;
-  --pvem-mid:    #00B15A;
-  --pvem-light:  #C8DF8E;
-  --pvem-xlight: #eef6d0;
-  --pvem-red:    #EF4135;
-  --pvem-yellow: #FFEE00;
+  --pvem-dark:   #5a8012;   /* oscurecido de 8FBF25 para texto/headers */
+  --pvem-main:   #8FBF25;   /* verde logo principal */
+  --pvem-mid:    #00B15A;   /* verde hoja baja */
+  --pvem-light:  #C8DF8E;   /* verde hoja alta / acentos suaves */
+  --pvem-xlight: #eef6d0;   /* fondo muy suave */
+  --pvem-red:    #EF4135;   /* rojo tucán - peligro/eliminar */
+  --pvem-yellow: #FFEE00;   /* amarillo – detalles decorativos */
   --pvem-black:  #1a1a18;
-  --gr50:#F8F9FA;
-  --gr100:#F2F4EE;
-  --gr200:#D4D8C8;
-  --gr400:#7a8060;
-  --gr600:#4a5030;
-  --gr800:#1a1a18;
-  --font: 'Nunito', sans-serif;
-  --verde-dark:  #3d5a09;
-  --verde-main:  #5a8012;
-  --verde-logo:  #8FBF25;
-  --verde-mid:   #00B15A;
-  --verde-light: #C8DF8E;
-  --verde-xlt:   #eef6d0;
-  --rojo:        #EF4135;
-  --amarillo:    #FFEE00;
-  --blanco:      #ffffff;
+  --gr50:#F8F9FA;--gr100:#F2F4EE;--gr200:#D4D8C8;--gr400:#7a8060;--gr600:#4a5030;--gr800:#1a1a18;
+  --font:'Segoe UI',system-ui,sans-serif;
 }
 
 /* ── Reset & base ────────────────────────────────────────────── */
@@ -315,7 +296,18 @@ input:focus,select.form-select:focus{outline:none;border-color:var(--pvem-main);
 .user-stats-row{display:flex;gap:12px;padding:18px 28px 6px;flex-wrap:wrap;}
 
 /* ── PVEM Official Colors ───────────────────────────── */
-
+:root{
+  --verde-dark:  #3d5a09;
+  --verde-main:  #5a8012;
+  --verde-logo:  #8FBF25;
+  --verde-mid:   #00B15A;
+  --verde-light: #C8DF8E;
+  --verde-xlt:   #eef6d0;
+  --rojo:        #EF4135;
+  --amarillo:    #FFEE00;
+  --blanco:      #ffffff;
+  --font: 'Nunito', sans-serif;
+}
 
 *{box-sizing:border-box;margin:0;padding:0;}
 
@@ -533,3 +525,11 @@ input:focus,select.form-select:focus{outline:none;border-color:var(--pvem-main);
 .msg-err.show{display:block;}
 
 #authScreen{display:flex;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;background:#3d5a09;background-image:radial-gradient(ellipse at 15% 20%,rgba(143,191,37,.55) 0%,transparent 50%),radial-gradient(ellipse at 85% 80%,rgba(0,177,90,.45) 0%,transparent 50%);overflow-y:auto;padding:20px;}
+
+body{font-family:'Segoe UI',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f0fdf6;}
+    .card{width:85.6mm;min-height:54mm;background:#fff;border-radius:8px;padding:12px 14px;box-shadow:0 4px 16px rgba(0,0,0,0.15);border:2px solid #0F6E56;}
+    .card-header{background:linear-gradient(135deg,#0a5c3e,#1a8a6a);color:#fff;padding:5px 10px;border-radius:5px;margin-bottom:10px;font-size:8px;font-weight:600;letter-spacing:1px;text-align:center;}
+    .card-photo{width:58px;height:58px;border-radius:6px;object-fit:cover;float:right;margin-left:10px;border:2px solid #b2dfce;}
+    .card-initials{width:58px;height:58px;border-radius:6px;background:linear-gradient(135deg,#c8f0de,#e1f5ee);color:#0a5c3e;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;float:right;margin-left:10px;}
+    .card-field{margin-bottom:3px;font-size:9px;}.card-field strong{color:#0a5c3e;}
+    @media print{body{background:none;}.card{box-shadow:none;}}
