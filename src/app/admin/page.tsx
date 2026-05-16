@@ -27,6 +27,9 @@ export default function AdminPage() {
   // Modal states
   const [payModal, setPayModal] = useState<any>(null)
   const [statsModal, setStatsModal] = useState(false)
+  const [modal1x20, setModal1x20] = useState(false)
+  const [formatos1x20, setFormatos1x20] = useState<any[]>([])  
+  const [notifs, setNotifs] = useState<any[]>([])
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [confirmName, setConfirmName] = useState('')
   const importRef = useRef<HTMLInputElement>(null)
@@ -50,8 +53,12 @@ export default function AdminPage() {
       supabase.from('rcs_eco').select('*'),
       supabase.from('observadores_rc').select('*'),
       supabase.from('pagos').select('*'),
+      supabase.from('formato_1x20').select('*, usuarios(nombre,id)').order('created_at', { ascending: false }),
+      supabase.from('notificaciones').select('*').eq('leida', false).order('created_at', { ascending: false }),
     ])
     const ps = p ?? [], es = e ?? [], rs = r ?? [], os = o ?? [], pgs = pg ?? []
+    setFormatos1x20(fmts ?? [])
+    setNotifs(notifsData ?? [])
     setPersonas(ps); setEcos(es); setRcsData(rs); setObsData(os); setPagos(pgs)
  
     const ecoCount = ps.filter((x:any) => x.rol === 'Ecoperador').length
@@ -302,6 +309,18 @@ export default function AdminPage() {
             </svg>
             Estadísticas
           </button>
+          <button className="btn" onClick={() => setModal1x20(true)} style={{
+            background:'#1a73c8', color:'#fff', fontWeight:700, position:'relative'
+          }}>
+            📋 1x20
+            {notifs.length > 0 && (
+              <span style={{ position:'absolute', top:'-6px', right:'-6px', background:'#EF4135',
+                color:'#fff', borderRadius:'50%', width:'18px', height:'18px',
+                fontSize:'10px', fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {notifs.length}
+              </span>
+            )}
+          </button>
           <button className="btn btn-primary" onClick={() => router.push('/admin/nueva-persona')}>
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -423,6 +442,110 @@ export default function AdminPage() {
       </div>
  
       <div className="page-footer">ECOSABANA Sonora 2027 · Partido Verde Ecologista de México · Sistema PVEM</div>
+ 
+      {/* ── MODAL 1x20 ADMIN ── */}
+      {modal1x20 && (
+        <div className="overlay open">
+          <div className="modal" style={{ maxWidth:'700px' }}>
+            <div className="modal-header">
+              <h2>📋 Formato 1x20 — Seguimiento</h2>
+              <button className="modal-close" onClick={() => setModal1x20(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              {/* Notificaciones pendientes */}
+              {notifs.length > 0 && (
+                <div style={{ background:'rgba(239,65,53,.08)', border:'1.5px solid #EF4135',
+                  borderRadius:'12px', padding:'12px 16px', marginBottom:'16px' }}>
+                  <div style={{ fontWeight:700, color:'#c0392b', marginBottom:'8px', fontSize:'13px' }}>
+                    🔔 {notifs.length} notificación(es) pendiente(s)
+                  </div>
+                  {notifs.map((n:any) => (
+                    <div key={n.id} style={{ display:'flex', justifyContent:'space-between',
+                      alignItems:'center', padding:'6px 0', borderBottom:'1px solid rgba(239,65,53,.15)' }}>
+                      <span style={{ fontSize:'13px', color:'#333' }}>✅ {n.mensaje}</span>
+                      <button onClick={async () => {
+                        await supabase.from('notificaciones').update({ leida:true }).eq('id', n.id)
+                        loadAll()
+                      }} style={{ background:'none', border:'1px solid #ccc', borderRadius:'7px',
+                        padding:'3px 10px', fontSize:'11px', cursor:'pointer', color:'#666' }}>
+                        Marcar leída
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+ 
+              {/* Stats rápidas */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'10px', marginBottom:'16px' }}>
+                {[
+                  { label:'Total registros', value: formatos1x20.length },
+                  { label:'Completos (20/20)', value: formatos1x20.filter((f:any)=>f.completo).length },
+                  { label:'En progreso', value: formatos1x20.filter((f:any)=>!f.completo).length },
+                ].map(s => (
+                  <div key={s.label} className="stats-box">
+                    <div className="val">{s.value}</div>
+                    <div className="lbl">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+ 
+              {/* Tabla de formatos */}
+              {formatos1x20.length === 0 ? (
+                <p style={{ textAlign:'center', color:'#aaa', padding:'30px' }}>
+                  Ningún usuario ha iniciado el Formato 1x20 aún.
+                </p>
+              ) : (
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                  <thead>
+                    <tr>
+                      {['Líder','Municipio','Progreso','Estado','Pago','Fecha'].map(h => (
+                        <th key={h} style={{ padding:'9px 10px', background:'linear-gradient(135deg,#eef6d0,#f7fbe8)',
+                          borderBottom:'2px solid #C8DF8E', color:'#3d5a09', fontWeight:700,
+                          fontSize:'10px', textTransform:'uppercase', textAlign:'left' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formatos1x20.map((f:any) => (
+                      <tr key={f.id} style={{ borderBottom:'1px solid #eef3e0',
+                        background: f.completo ? 'rgba(0,177,90,.05)' : '#fff' }}>
+                        <td style={{ padding:'9px 10px', fontWeight:700 }}>{f.nombre || f.usuarios?.nombre || '—'}</td>
+                        <td style={{ padding:'9px 10px' }}>{f.municipio||'—'}</td>
+                        <td style={{ padding:'9px 10px' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                            <div style={{ flex:1, background:'#e8f5e9', borderRadius:'6px', height:'8px', overflow:'hidden', minWidth:'60px' }}>
+                              <div style={{ background:'linear-gradient(90deg,#5a8012,#00B15A)',
+                                width: f.completo ? '100%' : '50%', height:'100%' }}/>
+                            </div>
+                            <span style={{ fontSize:'11px', fontWeight:700, color: f.completo ? '#2a8540' : '#7a8060' }}>
+                              {f.completo ? '20/20' : '—/20'}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ padding:'9px 10px' }}>
+                          {f.completo
+                            ? <span className="badge badge-val">✓ Completo</span>
+                            : <span className="badge badge-pend">En progreso</span>}
+                        </td>
+                        <td style={{ padding:'9px 10px', fontWeight:700, color:'#0a5c3e' }}>
+                          {f.completo ? '$300' : '—'}
+                        </td>
+                        <td style={{ padding:'9px 10px', fontSize:'11px', color:'#7a8060' }}>
+                          {new Date(f.created_at).toLocaleDateString('es-MX')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }}
+                onClick={() => setModal1x20(false)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
  
       {/* ── MODAL ESTADÍSTICAS ── */}
       {statsModal && (
