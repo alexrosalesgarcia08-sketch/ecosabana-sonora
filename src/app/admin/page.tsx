@@ -32,6 +32,8 @@ export default function AdminPage() {
   const [notifs, setNotifs] = useState<any[]>([])
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [confirmName, setConfirmName] = useState('')
+  const [pagoLider, setPagoLider] = useState<any>(null)
+  const [dropOpen, setDropOpen] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
  
   useEffect(() => {
@@ -265,7 +267,7 @@ export default function AdminPage() {
   )
  
   return (
-    <div id="adminApp" style={{ minHeight: '100vh', background: '#f4f7ec' }}>
+    <div id="adminApp" style={{ minHeight: '100vh', background: '#f4f7ec' }} onClick={() => setDropOpen(false)}>
  
       {/* ── HEADER ── */}
       <div className="header">
@@ -292,17 +294,29 @@ export default function AdminPage() {
             Importar Excel
           </button>
           <input ref={importRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={importExcel} />
-          <div className="dropdown">
-            <button className="btn btn-white" onClick={e => { const m = (e.currentTarget.nextSibling as HTMLElement); m.classList.toggle('open') }}>
+          <div style={{ position:'relative' }}>
+            <button className="btn btn-white" onClick={() => setDropOpen(!dropOpen)}>
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
               </svg>
               Exportar ▾
             </button>
-            <div className="dropdown-menu">
-              <button className="dropdown-item" onClick={exportExcel}>📊 Exportar Excel</button>
-              <button className="dropdown-item" onClick={export1x20}>📋 Exportar 1x20</button>
-            </div>
+            {dropOpen && (
+              <div style={{
+                position:'absolute', top:'calc(100% + 8px)', right:0,
+                background:'#fff', border:'1px solid #C8DF8E',
+                borderRadius:'12px', boxShadow:'0 10px 36px rgba(90,128,18,.2)',
+                minWidth:'200px', zIndex:500, overflow:'hidden',
+              }}>
+                <button className="dropdown-item" onClick={() => { exportExcel(); setDropOpen(false) }}>
+                  📊 Exportar Excel
+                </button>
+                <div className="dropdown-sep"/>
+                <button className="dropdown-item" onClick={() => { export1x20(); setDropOpen(false) }}>
+                  📋 Exportar 1x20
+                </button>
+              </div>
+            )}
           </div>
           <button className="btn btn-stats" onClick={() => setStatsModal(true)}>
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -565,10 +579,10 @@ export default function AdminPage() {
                   ['Clave Elector', pagoLider.clave_elector],
                   ['Sexo', pagoLider.sexo],
                   ['Edad', pagoLider.edad],
-                ].filter(([,v]) => v).map(([k,v]) => (
-                  <div key={String(k)} className="pay-person-row">
-                    <div style={{ color:'#7a8060', fontSize:'12px' }}>{k}</div>
-                    <div style={{ fontWeight:700, fontSize:'13px' }}>{String(v)}</div>
+                ].filter((row) => row[1]).map((row) => (
+                  <div key={String(row[0])} className="pay-person-row">
+                    <div style={{ color:'#7a8060', fontSize:'12px' }}>{row[0]}</div>
+                    <div style={{ fontWeight:700, fontSize:'13px' }}>{String(row[1])}</div>
                   </div>
                 ))}
               </div>
