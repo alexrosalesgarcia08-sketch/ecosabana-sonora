@@ -46,7 +46,8 @@ export default function AdminPage() {
  
   async function loadAll() {
     const [
-      { data: p }, { data: e }, { data: r }, { data: o }, { data: pg }
+      { data: p }, { data: e }, { data: r }, { data: o }, { data: pg },
+      { data: fmts }, { data: notifsData }
     ] = await Promise.all([
       supabase.from('personas').select('*').order('created_at', { ascending: false }),
       supabase.from('ecoperadores').select('*'),
@@ -750,4 +751,3 @@ export default function AdminPage() {
     </div>
   )
 }
- 
