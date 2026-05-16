@@ -377,3 +377,4 @@ export default function Formato1x20() {
     </div>
   )
 }
+ 
