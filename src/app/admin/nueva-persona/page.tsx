@@ -3,15 +3,15 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { MUNICIPIOS, BANCOS, RC_LABELS, STATUS_OPTS, calcPago } from '@/lib/constants'
-
+ 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
+ 
 const emptyObs = () => ({ nombre: '', tel: '', banco: '', cuenta: '' })
 const emptyRc = () => ({ nombre: '', tel: '', banco: '', cuenta: '', obs1: emptyObs(), obs2: emptyObs() })
-
+ 
 export default function NuevaPersonaAdmin() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
@@ -23,11 +23,11 @@ export default function NuevaPersonaAdmin() {
     rg_nombre: '', rg_tel: '', rg_banco: '', rg_cuenta: '',
     rcA: emptyRc(), rcB: emptyRc(), rcC: emptyRc(), rcD: emptyRc(),
   })
-
+ 
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
   const setRc = (slot: string, k: string, v: string) => setForm((f: any) => ({ ...f, ['rc' + slot]: { ...f['rc' + slot], [k]: v } }))
   const setObs = (slot: string, num: string, k: string, v: string) => setForm((f: any) => ({ ...f, ['rc' + slot]: { ...f['rc' + slot], ['obs' + num]: { ...f['rc' + slot]['obs' + num], [k]: v } } }))
-
+ 
   function toggleStatus(s: string) {
     setForm((f: any) => {
       const cur = f.status as string[]
@@ -36,7 +36,7 @@ export default function NuevaPersonaAdmin() {
       return { ...f, status: [...cur, s] }
     })
   }
-
+ 
   function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -45,16 +45,16 @@ export default function NuevaPersonaAdmin() {
     reader.onload = ev => setFoto(ev.target?.result as string)
     reader.readAsDataURL(file)
   }
-
+ 
   async function handleSave() {
     if (!form.nombre || !form.rol) { alert('Nombre y rol son requeridos'); return }
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
-
+ 
     const hasRG = !!(form.rg_nombre || form.rg_tel)
     const rcCount = RC_LABELS.filter(s => form['rc' + s]?.nombre || form['rc' + s]?.tel).length
     const pago = calcPago(form.rol, hasRG, rcCount)
-
+ 
     const { data: persona, error } = await supabase.from('personas').insert({
       nombre: form.nombre, celular: form.celular,
       municipio: form.municipio, distrito: parseInt(form.distrito) || 0,
@@ -63,16 +63,16 @@ export default function NuevaPersonaAdmin() {
       status: form.status, pago_acum: pago, foto: foto || null,
       creado_por: user?.id
     }).select().single()
-
+ 
     if (error) { alert('Error: ' + error.message); setSaving(false); return }
-
+ 
     if (form.rol === 'Ecoperador' && persona) {
       await supabase.from('ecoperadores').insert({
         id: persona.id,
         rg_nombre: form.rg_nombre, rg_tel: form.rg_tel,
         rg_banco: form.rg_banco, rg_cuenta: form.rg_cuenta,
       })
-
+ 
       for (const slot of RC_LABELS) {
         const rc = form['rc' + slot]
         if (!rc.nombre && !rc.tel) continue
@@ -80,7 +80,7 @@ export default function NuevaPersonaAdmin() {
           eco_id: persona.id, slot,
           nombre: rc.nombre, tel: rc.tel, banco: rc.banco, cuenta: rc.cuenta
         }).select().single()
-
+ 
         if (rcRow) {
           for (const num of ['1', '2']) {
             const obs = rc['obs' + num]
@@ -93,10 +93,10 @@ export default function NuevaPersonaAdmin() {
         }
       }
     }
-
+ 
     router.push('/admin')
   }
-
+ 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7ec', paddingBottom: '40px' }}>
       <div className="header">
@@ -105,13 +105,13 @@ export default function NuevaPersonaAdmin() {
           <div className="header-title"><h1>Agregar Persona</h1><p>Sistema de gestión PVEM</p></div>
         </div>
       </div>
-
-      <div style={{ maxWidth: '800px', margin: '32px auto', padding: '0 24px' }}>
+ 
+      <div style={{ maxWidth: '960px', margin: '24px auto', padding: '0 28px' }}>
         <div className="modal" style={{ borderRadius: '18px', overflow: 'visible' }}>
           <div className="modal-header"><h2>Nueva Persona</h2></div>
           <div className="modal-body">
             <div className="form-grid">
-
+ 
               {/* FOTO */}
               <div className="form-group full">
                 <div className="photo-upload-wrap">
@@ -125,7 +125,7 @@ export default function NuevaPersonaAdmin() {
                   <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFoto} />
                 </div>
               </div>
-
+ 
               {/* DATOS BASICOS */}
               <div className="form-group">
                 <label>Nombre completo <span className="req">*</span></label>
@@ -154,7 +154,7 @@ export default function NuevaPersonaAdmin() {
                 <label>Distrito</label>
                 <input type="number" value={form.distrito} onChange={e => set('distrito', e.target.value)} />
               </div>
-
+ 
               {/* ROL */}
               <div className="form-group full">
                 <label>Rol <span className="req">*</span></label>
@@ -166,7 +166,7 @@ export default function NuevaPersonaAdmin() {
                   <option>Observador</option>
                 </select>
               </div>
-
+ 
               {/* STATUS */}
               <div className="form-group full">
                 <label>Status (máx. 3)</label>
@@ -179,7 +179,7 @@ export default function NuevaPersonaAdmin() {
                   ))}
                 </div>
               </div>
-
+ 
               {/* BANCO/CUENTA */}
               <div className="form-group">
                 <label>Banco</label>
@@ -192,7 +192,7 @@ export default function NuevaPersonaAdmin() {
                 <label>Número de cuenta</label>
                 <input type="text" value={form.cuenta} onChange={e => set('cuenta', e.target.value)} placeholder="Número de cuenta" />
               </div>
-
+ 
               {/* ECOPERADOR EXTRA */}
               {form.rol === 'Ecoperador' && <>
                 <div className="section-title">Datos del RG</div>
@@ -215,7 +215,7 @@ export default function NuevaPersonaAdmin() {
                   <label>Cuenta RG</label>
                   <input type="text" value={form.rg_cuenta} onChange={e => set('rg_cuenta', e.target.value)} />
                 </div>
-
+ 
                 <div className="section-title">RCs (A, B, C, D)</div>
                 {RC_LABELS.map(slot => (
                   <div key={slot} className="form-group full">
@@ -242,7 +242,7 @@ export default function NuevaPersonaAdmin() {
                           <input type="text" value={form['rc' + slot]?.cuenta || ''} onChange={e => setRc(slot, 'cuenta', e.target.value)} />
                         </div>
                       </div>
-
+ 
                       {(form['rc' + slot]?.nombre || form['rc' + slot]?.tel) && <>
                         <p style={{ fontSize: '11px', fontWeight: 600, color: '#7a8060', margin: '10px 0 7px' }}>Observadores de RC {slot}</p>
                         {['1', '2'].map(num => (
@@ -273,7 +273,7 @@ export default function NuevaPersonaAdmin() {
                   </div>
                 ))}
               </>}
-
+ 
             </div>
           </div>
           <div className="modal-footer">
@@ -287,3 +287,4 @@ export default function NuevaPersonaAdmin() {
     </div>
   )
 }
+ 

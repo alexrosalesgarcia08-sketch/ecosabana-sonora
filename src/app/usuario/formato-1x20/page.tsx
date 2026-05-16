@@ -197,7 +197,7 @@ export default function Formato1x20() {
         </div>
       </div>
  
-      <div style={{ maxWidth:'1000px', margin:'28px auto', padding:'0 24px' }}>
+      <div style={{ maxWidth:'1100px', margin:'24px 28px', padding:'0' }}>
  
         {/* Progress bar */}
         <div style={{ background:'#fff', borderRadius:'14px', padding:'16px 20px', marginBottom:'20px',
@@ -377,4 +377,3 @@ export default function Formato1x20() {
     </div>
   )
 }
- 

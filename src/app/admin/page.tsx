@@ -34,6 +34,8 @@ export default function AdminPage() {
   const [confirmName, setConfirmName] = useState('')
   const [pagoLider, setPagoLider] = useState<any>(null)
   const [dropOpen, setDropOpen] = useState(false)
+  const [credModal, setCredModal] = useState<any>(null)
+  const [credFields, setCredFields] = useState<Record<string,boolean>>({ foto:true, nombre:true, celular:true, rol:true, municipio:true, folio:false, casilla:false, banco:false, cuenta:false, distrito:false, status:true })
   const importRef = useRef<HTMLInputElement>(null)
  
   useEffect(() => {
@@ -294,7 +296,7 @@ export default function AdminPage() {
             Importar Excel
           </button>
           <input ref={importRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={importExcel} />
-          <div style={{ position:'relative' }}>
+          <div style={{ position:'relative' }} onClick={e => e.stopPropagation()}>
             <button className="btn btn-white" onClick={() => setDropOpen(!dropOpen)}>
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
@@ -436,6 +438,7 @@ export default function AdminPage() {
                     <div className="actions">
                       <button className="btn-edit" title="Editar" onClick={() => router.push(`/admin/editar/${p.id}`)}>✏️</button>
                       <button className="btn-pay" title="Pagos" onClick={() => p.rol === 'Ecoperador' ? openPay(p) : openSimplePay(p)}>💰</button>
+                      <button className="btn-dl" title="Credencial" onClick={() => { setCredModal(p); setCredFields({ foto:true, nombre:true, celular:true, rol:true, municipio:true, folio:false, casilla:false, banco:false, cuenta:false, distrito:false, status:true }) }}>🖨️</button>
                       <button className="btn-danger" title="Eliminar" onClick={() => handleDelete(p.id, p.nombre)}>🗑️</button>
                     </div>
                   </td>
@@ -792,6 +795,151 @@ export default function AdminPage() {
             </div>
             <div className="modal-footer">
               <button className="btn" style={{ background: '#F2F4EE', border: '1px solid #D4D8C8' }} onClick={() => setPayModal(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+ 
+      {/* ── MODAL CREDENCIAL ── */}
+      {credModal && (
+        <div className="overlay open">
+          <div className="modal" style={{ maxWidth:'560px' }}>
+            <div className="modal-header">
+              <h2>🖨️ Credencial — {credModal.nombre}</h2>
+              <button className="modal-close" onClick={() => setCredModal(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'16px' }}>
+                {[
+                  ['foto','Foto'],['nombre','Nombre'],['rol','Rol'],['celular','Celular'],
+                  ['municipio','Municipio'],['distrito','Distrito'],['folio','Folio'],
+                  ['casilla','Sección/Casilla'],['banco','Banco'],['cuenta','Cuenta'],['status','Status'],
+                ].map(([k,label]) => (
+                  <label key={k} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'7px 10px',
+                    border:'1px solid rgba(143,191,37,.3)', borderRadius:'9px', cursor:'pointer',
+                    background: credFields[k] ? '#eef6d0' : '#fff', transition:'all .12s' }}>
+                    <input type="checkbox" checked={!!credFields[k]}
+                      onChange={e => setCredFields(prev => ({...prev, [k]: e.target.checked}))}
+                      style={{ width:'14px', height:'14px', accentColor:'#00B15A' }}/>
+                    <span style={{ fontSize:'13px', fontWeight:600, color:'#3d5a09' }}>{label}</span>
+                  </label>
+                ))}
+              </div>
+ 
+              {/* Preview credencial — formato Zebra ZC300 (85.6mm × 54mm) */}
+              <div style={{ marginBottom:'12px' }}>
+                <p style={{ fontSize:'11px', color:'#7a8060', marginBottom:'8px', fontWeight:600 }}>
+                  Vista previa — Zebra ZC300 (85.6 × 54 mm)
+                </p>
+                <div id="cred-preview" style={{
+                  width:'323px', height:'204px',
+                  background:'linear-gradient(135deg,#f8fef0 0%,#eef6d0 100%)',
+                  border:'2px solid #C8DF8E', borderRadius:'12px',
+                  padding:'14px', display:'flex', gap:'12px', alignItems:'flex-start',
+                  position:'relative', overflow:'hidden', margin:'0 auto',
+                  fontFamily:"'Segoe UI',sans-serif",
+                }}>
+                  {/* Accent bar */}
+                  <div style={{ position:'absolute', top:0, left:0, right:0, height:'5px',
+                    background:'linear-gradient(90deg,#3d5a09,#00B15A)' }}/>
+                  {/* Logo corner */}
+                  <div style={{ position:'absolute', top:'10px', right:'10px',
+                    width:'28px', height:'28px', borderRadius:'50%',
+                    background:'linear-gradient(135deg,#5a8012,#00B15A)',
+                    display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <span style={{ color:'#fff', fontSize:'14px', fontWeight:900 }}>V</span>
+                  </div>
+ 
+                  {/* Foto */}
+                  {credFields['foto'] && (
+                    <div style={{ flexShrink:0 }}>
+                      {credModal.foto
+                        ? <img src={credModal.foto} style={{ width:'64px', height:'80px',
+                            objectFit:'cover', borderRadius:'8px', border:'2px solid #C8DF8E', marginTop:'6px' }}/>
+                        : <div style={{ width:'64px', height:'80px', borderRadius:'8px',
+                            background:'linear-gradient(135deg,#eef6d0,rgba(0,177,90,.15))',
+                            border:'2px dashed #C8DF8E', display:'flex', alignItems:'center',
+                            justifyContent:'center', fontSize:'22px', marginTop:'6px' }}>👤</div>}
+                    </div>
+                  )}
+ 
+                  {/* Datos */}
+                  <div style={{ flex:1, marginTop:'8px' }}>
+                    {credFields['nombre'] && (
+                      <div style={{ fontSize:'14px', fontWeight:800, color:'#2e4a08', marginBottom:'2px',
+                        lineHeight:1.2 }}>{credModal.nombre}</div>
+                    )}
+                    {credFields['rol'] && (
+                      <div style={{ fontSize:'10px', fontWeight:700, color:'#fff',
+                        background:'linear-gradient(135deg,#5a8012,#00B15A)',
+                        display:'inline-block', padding:'2px 8px', borderRadius:'10px', marginBottom:'6px' }}>
+                        {credModal.rol}
+                      </div>
+                    )}
+                    <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+                      {credFields['celular'] && credModal.celular && (
+                        <div style={{ fontSize:'10px', color:'#4a5030' }}>📱 {credModal.celular}</div>
+                      )}
+                      {credFields['municipio'] && credModal.municipio && (
+                        <div style={{ fontSize:'10px', color:'#4a5030' }}>📍 {credModal.municipio}</div>
+                      )}
+                      {credFields['distrito'] && credModal.distrito && (
+                        <div style={{ fontSize:'10px', color:'#4a5030' }}>🗳️ Dist. {credModal.distrito}</div>
+                      )}
+                      {credFields['folio'] && credModal.folio && (
+                        <div style={{ fontSize:'10px', color:'#4a5030' }}>📄 Folio: {credModal.folio}</div>
+                      )}
+                      {credFields['casilla'] && credModal.casilla && (
+                        <div style={{ fontSize:'10px', color:'#4a5030' }}>🏛️ Secc. {credModal.casilla}</div>
+                      )}
+                      {credFields['banco'] && credModal.banco && (
+                        <div style={{ fontSize:'10px', color:'#4a5030' }}>🏦 {credModal.banco}</div>
+                      )}
+                      {credFields['cuenta'] && credModal.cuenta && (
+                        <div style={{ fontSize:'10px', color:'#4a5030' }}>💳 {credModal.cuenta}</div>
+                      )}
+                      {credFields['status'] && credModal.status?.length > 0 && (
+                        <div style={{ fontSize:'10px', color:'#4a5030' }}>
+                          {(credModal.status as string[]).join(' · ')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+ 
+                  {/* Footer */}
+                  <div style={{ position:'absolute', bottom:'6px', left:'14px', right:'14px',
+                    borderTop:'1px solid rgba(143,191,37,.3)', paddingTop:'4px',
+                    display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontSize:'8px', color:'#8FBF25', fontWeight:700 }}>ECOSABANA Sonora 2027</span>
+                    <span style={{ fontSize:'8px', color:'#8FBF25', fontWeight:700 }}>PVEM</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }}
+                onClick={() => setCredModal(null)}>Cerrar</button>
+              <button className="btn" style={{ background:'#1a73c8', color:'#fff', fontWeight:700 }}
+                onClick={() => {
+                  const preview = document.getElementById('cred-preview')
+                  if (!preview) return
+                  const w = window.open('', '_blank', 'width=400,height=300')
+                  if (!w) return
+                  w.document.write(`<!DOCTYPE html><html><head>
+                    <title>Credencial — ${credModal.nombre}</title>
+                    <style>
+                      @page { size: 85.6mm 54mm; margin: 0; }
+                      body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                      .card { width: 85.6mm; height: 54mm; }
+                    </style>
+                  </head><body>
+                    <div class="card">${preview.outerHTML}</div>
+                    <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script>
+                  </body></html>`)
+                  w.document.close()
+                }}>
+                🖨️ Imprimir / Descargar
+              </button>
             </div>
           </div>
         </div>

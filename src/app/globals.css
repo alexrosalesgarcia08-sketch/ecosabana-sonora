@@ -548,3 +548,14 @@ html, body { width: 100%; }
 .header { width: 100%; box-sizing: border-box; }
 .stats { width: 100%; box-sizing: border-box; }
 .filters { width: 100%; box-sizing: border-box; }
+ 
+/* Form pages full width */
+#adminApp > div,
+#userAddPanel > div {
+  width: 100%;
+}
+/* Remove any display:flex from body that shrinks content */
+body {
+  display: block !important;
+}
+ 

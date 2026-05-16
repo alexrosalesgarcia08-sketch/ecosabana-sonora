@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { initials, badgeClass, statusBadgeClass, getCatorcena } from '@/lib/constants'
+import { initials, badgeClass, statusBadgeClass, getCatorcena, MASCOT_SRC } from '@/lib/constants'
  
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -117,7 +117,7 @@ export default function UsuarioPage() {
     <div id="userAddPanel">
       <div id="uHeader">
         <div id="uHeaderLeft">
-          <div id="uLogo">V</div>
+          <img src={MASCOT_SRC} alt="Mascota" style={{ width:'52px', filter:'drop-shadow(0 3px 8px rgba(0,0,0,.25))', flexShrink:0 }}/>
           <div>
             <div id="uTitle">ECOSABANA Sonora 2027</div>
             <div id="uSubtitle">Sistema de gestión de estructura PVEM</div>
