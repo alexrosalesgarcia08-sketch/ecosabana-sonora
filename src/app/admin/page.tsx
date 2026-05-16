@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { initials, badgeClass, statusBadgeClass, getCatorcena, getWeekNum, RC_LABELS } from '@/lib/constants'
+import { initials, badgeClass, statusBadgeClass, getCatorcena, getWeekNum, RC_LABELS, MASCOT_SRC } from '@/lib/constants'
 import * as XLSX from 'xlsx'
  
 const supabase = createClient(
@@ -34,7 +34,7 @@ export default function AdminPage() {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/'; return }
       const { data: u } = await supabase.from('usuarios').select('nombre,rol').eq('id', data.user.id).single()
-      if (u?.rol !== 'admin') { window.location.href = '/usuario'; return }
+      if (u?.rol !== 'admin') { router.replace('/usuario'); return }
       setUserName(u?.nombre || data.user.email || 'Admin')
       loadAll()
     })
@@ -221,7 +221,7 @@ export default function AdminPage() {
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div id="mascotWrap">
-            <img id="mascotImg" alt="Mascota PVEM" style={{ width: '74px' }} />
+            <img id="mascotImg" src={MASCOT_SRC} alt="Mascota PVEM" style={{ width: '74px' }} />
           </div>
           <div className="header-title">
             <h1>ECOSABANA Sonora 2027</h1>
@@ -504,4 +504,3 @@ export default function AdminPage() {
     </div>
   )
 }
- 
