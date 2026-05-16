@@ -26,6 +26,7 @@ export default function AdminPage() {
  
   // Modal states
   const [payModal, setPayModal] = useState<any>(null)
+  const [statsModal, setStatsModal] = useState(false)
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [confirmName, setConfirmName] = useState('')
   const importRef = useRef<HTMLInputElement>(null)
@@ -112,6 +113,47 @@ export default function AdminPage() {
   function isPaid(personaId: string, tipo: string) {
     const cat = getCatorcena(); const yr = new Date().getFullYear()
     return pagos.some(r => r.persona_id === personaId && r.tipo === tipo && r.catorcena === cat && r.anio === yr)
+  }
+ 
+  // ── EXPORT 1x20 ────────────────────────────────────────────
+  function export1x20() {
+    const ecos = personas.filter((p:any) => p.rol === 'Ecoperador')
+    if (!ecos.length) { alert('No hay Ecoperadores'); return }
+    const wb = XLSX.utils.book_new()
+    ecos.forEach((eco:any) => {
+      const myRcs = rcsData.filter((r:any) => r.eco_id === eco.id)
+      const ecoRow = ecos.find((e:any) => e.id === eco.id)
+      const rows: any[][] = [
+        [`FORMATO 1x20 - ${eco.nombre}`],
+        [`Municipio: ${eco.municipio || '-'} | Distrito: ${eco.distrito || '-'} | Cel: ${eco.celular || '-'}`],
+        [],
+        ['#', 'Nombre', 'Teléfono', 'Rol', 'Banco', 'Cuenta', 'Relación']
+      ]
+      let idx = 1
+      const eco2 = ecos.find((e:any) => e.id === eco.id)
+      const ecoData = ecos.find((e:any) => e.id === eco.id)
+      // RG embebido
+      const ecoRow2 = ecos.find((e:any) => e.id === eco.id)
+      const myEco = ecos.find((e:any) => e.id === eco.id)
+      // Get ecoperador data
+      const ecoEntry = ecos.find((e:any) => e.id === eco.id)
+      rows.push([String(idx++).padStart(2,'0'), eco.nombre, eco.celular||'', 'Ecoperador', eco.banco||'', eco.cuenta||'', 'Titular'])
+      myRcs.forEach((rc:any) => {
+        rows.push([String(idx++).padStart(2,'0'), rc.nombre||'', rc.tel||'', `RC ${rc.slot}`, rc.banco||'', rc.cuenta||'', `RC del Eco`])
+      })
+      // Standalone personas linked
+      personas.filter((p:any) => p.rol !== 'Ecoperador' && p.municipio === eco.municipio).slice(0, 20 - idx + 1).forEach((p:any) => {
+        rows.push([String(idx++).padStart(2,'0'), p.nombre, p.celular||'', p.rol, p.banco||'', p.cuenta||'', p.municipio||''])
+      })
+      // Pad to 20
+      while (idx <= 20) {
+        rows.push([String(idx++).padStart(2,'0'), '', '', '', '', '', ''])
+      }
+      const ws = XLSX.utils.aoa_to_sheet(rows)
+      const sheetName = eco.nombre.substring(0, 31).replace(/[/\?*[\]]/g,'')
+      XLSX.utils.book_append_sheet(wb, ws, sheetName || `Eco${idx}`)
+    })
+    XLSX.writeFile(wb, `1x20_ECOSABANA_${new Date().toLocaleDateString('es-MX').replace(/\//g,'-')}.xlsx`)
   }
  
   // ── EXCEL EXPORT ───────────────────────────────────────────
@@ -229,28 +271,42 @@ export default function AdminPage() {
           </div>
         </div>
         <div className="header-actions">
+          <button className="btn btn-white" onClick={handleLogout}>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            Salir
+          </button>
+          <button className="btn btn-white" onClick={() => importRef.current?.click()}>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Importar Excel
+          </button>
+          <input ref={importRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={importExcel} />
+          <div className="dropdown">
+            <button className="btn btn-white" onClick={e => { const m = (e.currentTarget.nextSibling as HTMLElement); m.classList.toggle('open') }}>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+              </svg>
+              Exportar ▾
+            </button>
+            <div className="dropdown-menu">
+              <button className="dropdown-item" onClick={exportExcel}>📊 Exportar Excel</button>
+              <button className="dropdown-item" onClick={export1x20}>📋 Exportar 1x20</button>
+            </div>
+          </div>
+          <button className="btn btn-stats" onClick={() => setStatsModal(true)}>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+            Estadísticas
+          </button>
           <button className="btn btn-primary" onClick={() => router.push('/admin/nueva-persona')}>
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             Agregar Persona
-          </button>
-          <div className="dropdown">
-            <button className="btn btn-white" onClick={e => { const m = (e.currentTarget.nextSibling as HTMLElement); m.classList.toggle('open') }}>
-              ⬇ Exportar
-            </button>
-            <div className="dropdown-menu">
-              <button className="dropdown-item" onClick={exportExcel}>📊 Exportar Excel</button>
-              <div className="dropdown-sep" />
-              <button className="dropdown-item" onClick={() => importRef.current?.click()}>📥 Importar Excel</button>
-              <input ref={importRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={importExcel} />
-            </div>
-          </div>
-          <button className="btn btn-white" onClick={handleLogout}>
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-            </svg>
-            Cerrar sesión
           </button>
         </div>
       </div>
@@ -367,6 +423,73 @@ export default function AdminPage() {
       </div>
  
       <div className="page-footer">ECOSABANA Sonora 2027 · Partido Verde Ecologista de México · Sistema PVEM</div>
+ 
+      {/* ── MODAL ESTADÍSTICAS ── */}
+      {statsModal && (
+        <div className="overlay open">
+          <div className="modal" style={{ maxWidth:'600px' }}>
+            <div className="modal-header">
+              <h2>📊 Estadísticas de Pagos</h2>
+              <button className="modal-close" onClick={() => setStatsModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              {(() => {
+                const cat = getCatorcena()
+                const yr = new Date().getFullYear()
+                const catData: any = {}
+                pagos.forEach((r:any) => {
+                  const key = `Cat. ${r.catorcena} / ${r.anio}`
+                  if (!catData[key]) catData[key] = { total:0, ops:0, eco:0, rg:0, rc:0 }
+                  catData[key].total += r.monto
+                  catData[key].ops++
+                  if (r.tipo === 'eco') catData[key].eco++
+                  if (r.tipo === 'rg') catData[key].rg++
+                  if (r.tipo?.startsWith('rc')) catData[key].rc++
+                })
+                const totalPagado = pagos.reduce((a:number,r:any) => a + (r.monto||0), 0)
+                const catActual = `Cat. ${cat} / ${yr}`
+                return (
+                  <>
+                    <div style={{ background:'#fff9e6', border:'1.5px solid #FFEE00', borderRadius:'12px',
+                      padding:'10px 16px', marginBottom:'16px', fontSize:'13px', fontWeight:700, color:'#5a4a00' }}>
+                      📅 Catorcena actual: <strong>{catActual}</strong>
+                    </div>
+                    <div className="stats-grid">
+                      <div className="stats-box"><div className="val">${totalPagado.toLocaleString()}</div><div className="lbl">Total Pagado</div></div>
+                      <div className="stats-box"><div className="val">{pagos.length}</div><div className="lbl">Operaciones</div></div>
+                      <div className="stats-box"><div className="val">{new Set(pagos.filter((r:any)=>r.tipo==='eco').map((r:any)=>r.persona_id)).size}</div><div className="lbl">Eco Pagados</div></div>
+                      <div className="stats-box"><div className="val">{Object.keys(catData).length}</div><div className="lbl">Catorcenas</div></div>
+                    </div>
+                    <table className="cat-table" style={{ marginTop:'16px' }}>
+                      <thead>
+                        <tr>
+                          <th>Catorcena</th><th>Eco</th><th>RG</th><th>RC</th><th>Operaciones</th><th>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(catData).length === 0
+                          ? <tr><td colSpan={6} style={{ textAlign:'center', color:'#aaa', padding:'20px' }}>Sin pagos registrados aún</td></tr>
+                          : Object.entries(catData).map(([k,v]:any) => (
+                            <tr key={k} style={{ background: k===catActual ? 'rgba(255,238,0,.1)' : '' }}>
+                              <td>{k} {k===catActual ? '⬅ actual' : ''}</td>
+                              <td>{v.eco}</td><td>{v.rg}</td><td>{v.rc}</td>
+                              <td>{v.ops}</td>
+                              <td style={{ fontWeight:700, color:'#0a5c3e' }}>${v.total.toLocaleString()}</td>
+                            </tr>
+                          ))
+                        }
+                      </tbody>
+                    </table>
+                  </>
+                )
+              })()}
+            </div>
+            <div className="modal-footer">
+              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }} onClick={() => setStatsModal(false)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
  
       {/* ── MODAL PAGOS ── */}
       {payModal && (
@@ -504,3 +627,4 @@ export default function AdminPage() {
     </div>
   )
 }
+ 
