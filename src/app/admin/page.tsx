@@ -54,7 +54,7 @@ export default function AdminPage() {
       supabase.from('rcs_eco').select('*'),
       supabase.from('observadores_rc').select('*'),
       supabase.from('pagos').select('*'),
-      supabase.from('formato_1x20').select('*, usuarios(nombre,id)').order('created_at', { ascending: false }),
+      supabase.from('formato_1x20_con_conteo').select('*').order('created_at', { ascending: false }),
       supabase.from('notificaciones').select('*').eq('leida', false).order('created_at', { ascending: false }),
     ])
     const ps = p ?? [], es = e ?? [], rs = r ?? [], os = o ?? [], pgs = pg ?? []
@@ -447,95 +447,92 @@ export default function AdminPage() {
       {/* ── MODAL 1x20 ADMIN ── */}
       {modal1x20 && (
         <div className="overlay open">
-          <div className="modal" style={{ maxWidth:'700px' }}>
+          <div className="modal" style={{ maxWidth:'750px' }}>
             <div className="modal-header">
-              <h2>📋 Formato 1x20 — Seguimiento</h2>
+              <h2>📋 Formato 1x20 — Lista de participantes</h2>
               <button className="modal-close" onClick={() => setModal1x20(false)}>×</button>
             </div>
-            <div className="modal-body">
-              {/* Notificaciones pendientes */}
-              {notifs.length > 0 && (
-                <div style={{ background:'rgba(239,65,53,.08)', border:'1.5px solid #EF4135',
-                  borderRadius:'12px', padding:'12px 16px', marginBottom:'16px' }}>
-                  <div style={{ fontWeight:700, color:'#c0392b', marginBottom:'8px', fontSize:'13px' }}>
-                    🔔 {notifs.length} notificación(es) pendiente(s)
-                  </div>
-                  {notifs.map((n:any) => (
-                    <div key={n.id} style={{ display:'flex', justifyContent:'space-between',
-                      alignItems:'center', padding:'6px 0', borderBottom:'1px solid rgba(239,65,53,.15)' }}>
-                      <span style={{ fontSize:'13px', color:'#333' }}>✅ {n.mensaje}</span>
-                      <button onClick={async () => {
-                        await supabase.from('notificaciones').update({ leida:true }).eq('id', n.id)
-                        loadAll()
-                      }} style={{ background:'none', border:'1px solid #ccc', borderRadius:'7px',
-                        padding:'3px 10px', fontSize:'11px', cursor:'pointer', color:'#666' }}>
-                        Marcar leída
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
- 
-              {/* Stats rápidas */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'10px', marginBottom:'16px' }}>
-                {[
-                  { label:'Total registros', value: formatos1x20.length },
-                  { label:'Completos (20/20)', value: formatos1x20.filter((f:any)=>f.completo).length },
-                  { label:'En progreso', value: formatos1x20.filter((f:any)=>!f.completo).length },
-                ].map(s => (
-                  <div key={s.label} className="stats-box">
-                    <div className="val">{s.value}</div>
-                    <div className="lbl">{s.label}</div>
-                  </div>
-                ))}
-              </div>
- 
-              {/* Tabla de formatos */}
+            <div className="modal-body" style={{ padding:'16px 20px' }}>
               {formatos1x20.length === 0 ? (
-                <p style={{ textAlign:'center', color:'#aaa', padding:'30px' }}>
-                  Ningún usuario ha iniciado el Formato 1x20 aún.
+                <p style={{ textAlign:'center', color:'#aaa', padding:'40px' }}>
+                  Ningún usuario ha iniciado el Formato 1x20 todavía.
                 </p>
               ) : (
-                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'13px' }}>
                   <thead>
                     <tr>
-                      {['Líder','Municipio','Progreso','Estado','Pago','Fecha'].map(h => (
-                        <th key={h} style={{ padding:'9px 10px', background:'linear-gradient(135deg,#eef6d0,#f7fbe8)',
+                      {['Líder','Municipio','Personas agregadas','Estado','Pago','Acciones'].map(h=>(
+                        <th key={h} style={{ padding:'10px 12px', background:'linear-gradient(135deg,#eef6d0,#f7fbe8)',
                           borderBottom:'2px solid #C8DF8E', color:'#3d5a09', fontWeight:700,
-                          fontSize:'10px', textTransform:'uppercase', textAlign:'left' }}>{h}</th>
+                          fontSize:'10px', textTransform:'uppercase', letterSpacing:'.05em', textAlign:'left' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {formatos1x20.map((f:any) => (
-                      <tr key={f.id} style={{ borderBottom:'1px solid #eef3e0',
-                        background: f.completo ? 'rgba(0,177,90,.05)' : '#fff' }}>
-                        <td style={{ padding:'9px 10px', fontWeight:700 }}>{f.nombre || f.usuarios?.nombre || '—'}</td>
-                        <td style={{ padding:'9px 10px' }}>{f.municipio||'—'}</td>
-                        <td style={{ padding:'9px 10px' }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                            <div style={{ flex:1, background:'#e8f5e9', borderRadius:'6px', height:'8px', overflow:'hidden', minWidth:'60px' }}>
-                              <div style={{ background:'linear-gradient(90deg,#5a8012,#00B15A)',
-                                width: f.completo ? '100%' : '50%', height:'100%' }}/>
+                    {formatos1x20.map((f:any) => {
+                      const pagado = f.pago_realizado
+                      return (
+                        <tr key={f.id} style={{ borderBottom:'1px solid #eef3e0',
+                          background: pagado ? 'rgba(143,191,37,.07)' : f.completo ? 'rgba(26,115,200,.04)' : '#fff' }}>
+                          <td style={{ padding:'10px 12px', fontWeight:700 }}>
+                            {f.nombre || '(sin nombre)'}
+                            {f.notificado && !pagado && (
+                              <span style={{ marginLeft:'6px', background:'rgba(239,65,53,.15)',
+                                color:'#c0392b', borderRadius:'10px', padding:'1px 7px', fontSize:'10px', fontWeight:700 }}>
+                                ¡Completo!
+                              </span>
+                            )}
+                            {pagado && (
+                              <span style={{ marginLeft:'6px', background:'rgba(0,177,90,.15)',
+                                color:'#006633', borderRadius:'10px', padding:'1px 7px', fontSize:'10px', fontWeight:700 }}>
+                                ✓ Pagado
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding:'10px 12px', color:'#555' }}>{f.municipio||'—'}</td>
+                          <td style={{ padding:'10px 12px' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                              <div style={{ flex:1, background:'#e8f5e9', borderRadius:'6px', height:'8px',
+                                overflow:'hidden', minWidth:'80px' }}>
+                                <div style={{ background: f.completo ? 'linear-gradient(90deg,#5a8012,#00B15A)' : '#8FBF25',
+                                  width:`${((f.personas_count||0)/20)*100}%`, height:'100%', transition:'width .3s' }}/>
+                              </div>
+                              <span style={{ fontSize:'12px', fontWeight:700,
+                                color: f.completo ? '#2a8540' : '#7a8060' }}>
+                                {f.personas_count||0}/20
+                              </span>
                             </div>
-                            <span style={{ fontSize:'11px', fontWeight:700, color: f.completo ? '#2a8540' : '#7a8060' }}>
-                              {f.completo ? '20/20' : '—/20'}
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ padding:'9px 10px' }}>
-                          {f.completo
-                            ? <span className="badge badge-val">✓ Completo</span>
-                            : <span className="badge badge-pend">En progreso</span>}
-                        </td>
-                        <td style={{ padding:'9px 10px', fontWeight:700, color:'#0a5c3e' }}>
-                          {f.completo ? '$300' : '—'}
-                        </td>
-                        <td style={{ padding:'9px 10px', fontSize:'11px', color:'#7a8060' }}>
-                          {new Date(f.created_at).toLocaleDateString('es-MX')}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td style={{ padding:'10px 12px' }}>
+                            {pagado
+                              ? <span className="badge badge-val">Pagado</span>
+                              : f.completo
+                              ? <span className="badge badge-cred">Completo</span>
+                              : <span className="badge badge-pend">En progreso</span>}
+                          </td>
+                          <td style={{ padding:'10px 12px', fontWeight:700,
+                            color: pagado ? '#2a8540' : f.completo ? '#0a5c3e' : '#aaa' }}>
+                            {f.completo || pagado ? '$300' : '—'}
+                          </td>
+                          <td style={{ padding:'10px 12px' }}>
+                            {!pagado && f.completo && (
+                              <button onClick={() => setPagoLider(f)}
+                                style={{ background:'#2a8540', color:'#fff', border:'none',
+                                  borderRadius:'8px', padding:'6px 14px', fontWeight:700,
+                                  fontSize:'12px', cursor:'pointer', fontFamily:'var(--font)' }}>
+                                💰 Pagar
+                              </button>
+                            )}
+                            {pagado && (
+                              <span style={{ color:'#2a8540', fontWeight:700, fontSize:'12px' }}>✓ Pagado</span>
+                            )}
+                            {!f.completo && (
+                              <span style={{ color:'#aaa', fontSize:'12px' }}>Sin completar</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               )}
@@ -548,6 +545,62 @@ export default function AdminPage() {
         </div>
       )}
  
+      {/* ── MODAL PAGO LÍDER 1x20 ── */}
+      {pagoLider && (
+        <div className="overlay open">
+          <div className="modal" style={{ maxWidth:'480px' }}>
+            <div className="modal-header">
+              <h2>💰 Pagar al Líder — Formato 1x20</h2>
+              <button className="modal-close" onClick={() => setPagoLider(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="pay-section">
+                <h4>👤 Datos del Líder</h4>
+                {[
+                  ['Nombre', pagoLider.nombre],
+                  ['Teléfono', pagoLider.telefono],
+                  ['Municipio', pagoLider.municipio],
+                  ['Banco', pagoLider.banco],
+                  ['Cuenta', pagoLider.cuenta],
+                  ['Clave Elector', pagoLider.clave_elector],
+                  ['Sexo', pagoLider.sexo],
+                  ['Edad', pagoLider.edad],
+                ].filter(([,v]) => v).map(([k,v]) => (
+                  <div key={String(k)} className="pay-person-row">
+                    <div style={{ color:'#7a8060', fontSize:'12px' }}>{k}</div>
+                    <div style={{ fontWeight:700, fontSize:'13px' }}>{String(v)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="pay-total">
+                <span>Pago por Formato 1x20 completado</span>
+                <span>$300</span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }}
+                onClick={() => setPagoLider(null)}>Cancelar</button>
+              <button className="btn" style={{ background:'#2a8540', color:'#fff', fontWeight:700 }}
+                onClick={async () => {
+                  await supabase.from('formato_1x20').update({ pago_realizado: true }).eq('id', pagoLider.id)
+                  await supabase.from('notificaciones').insert({
+                    tipo: '1x20_pagado',
+                    mensaje: `Se registró pago de $300 a ${pagoLider.nombre} por Formato 1x20.`,
+                    usuario_id: pagoLider.usuario_id,
+                    leida: false
+                  })
+                  setPagoLider(null)
+                  loadAll()
+                  alert(`✅ Pago de $300 registrado para ${pagoLider.nombre}`)
+                }}>
+                ✓ Confirmar Pago $300
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+ 
+      {/* ── MODAL ESTADÍSTICAS ── */}
       {/* ── MODAL ESTADÍSTICAS ── */}
       {statsModal && (
         <div className="overlay open">
@@ -751,3 +804,4 @@ export default function AdminPage() {
     </div>
   )
 }
+ 
