@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [confirmName, setConfirmName] = useState('')
   const [pagoLider, setPagoLider] = useState<any>(null)
   const [dropOpen, setDropOpen] = useState(false)
+  const [listModal, setListModal] = useState<{tipo:string,items:any[]}|null>(null)
   const [credModal, setCredModal] = useState<any>(null)
   const [credFields, setCredFields] = useState<Record<string,boolean>>({ foto:true, nombre:true, celular:true, rol:true, municipio:true, folio:false, casilla:false, banco:false, cuenta:false, distrito:false, status:true })
   const importRef = useRef<HTMLInputElement>(null)
@@ -945,6 +946,69 @@ export default function AdminPage() {
         </div>
       )}
  
+      {/* ── MODAL LISTA POR CATEGORÍA ── */}
+      {listModal && (
+        <div className="overlay open">
+          <div className="modal" style={{ maxWidth:'700px' }}>
+            <div className="modal-header">
+              <h2>👥 {listModal.tipo} — {listModal.items.length} registro{listModal.items.length!==1?'s':''}</h2>
+              <button className="modal-close" onClick={() => setListModal(null)}>×</button>
+            </div>
+            <div className="modal-body" style={{ padding:'0' }}>
+              <div style={{ overflowX:'auto' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                  <thead>
+                    <tr>
+                      {['Foto','Nombre','Rol','Municipio','Celular','Banco','Cuenta','Pago'].map(h => (
+                        <th key={h} style={{ padding:'10px 12px', background:'linear-gradient(135deg,#eef6d0,#f7fbe8)',
+                          borderBottom:'2px solid #C8DF8E', color:'#3d5a09', fontWeight:700,
+                          fontSize:'10px', textTransform:'uppercase', letterSpacing:'.05em', textAlign:'left', whiteSpace:'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {listModal.items.map((p:any, i:number) => (
+                      <tr key={i} style={{ borderBottom:'1px solid #eef3e0', background: i%2===0?'#fff':'#fafff4' }}>
+                        <td style={{ padding:'8px 12px' }}>
+                          {p.foto
+                            ? <img src={p.foto} style={{ width:'30px', height:'30px', borderRadius:'50%', objectFit:'cover', border:'2px solid #C8DF8E' }}/>
+                            : <div style={{ width:'30px', height:'30px', borderRadius:'50%',
+                                background:'linear-gradient(135deg,#eef6d0,rgba(0,177,90,.18))',
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                fontSize:'10px', fontWeight:800, color:'#3d5a09' }}>
+                                {p.nombre?.split(' ').map((w:string)=>w[0]).slice(0,2).join('').toUpperCase()||'?'}
+                              </div>}
+                        </td>
+                        <td style={{ padding:'8px 12px', fontWeight:700 }}>
+                          {p.nombre||'—'}
+                          {p._eco && <div style={{ fontSize:'10px', color:'#7a8060', marginTop:'1px' }}>Eco: {p._eco}</div>}
+                        </td>
+                        <td style={{ padding:'8px 12px' }}>
+                          <span className={`badge badge-${p.rol?.includes('Eco')?'eco':p.rol?.includes('RG')?'rg':p.rol?.includes('RC')?'rc':'obs'}`}>
+                            {p.rol||'—'}
+                          </span>
+                        </td>
+                        <td style={{ padding:'8px 12px', color:'#555' }}>{p.municipio||'—'}</td>
+                        <td style={{ padding:'8px 12px' }}>{p.celular||'—'}</td>
+                        <td style={{ padding:'8px 12px' }}>{p.banco||'—'}</td>
+                        <td style={{ padding:'8px 12px' }}>{p.cuenta||'—'}</td>
+                        <td style={{ padding:'8px 12px', fontWeight:700, color:'#0a5c3e' }}>
+                          {p.pago_acum!=null ? `$${p.pago_acum}` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }}
+                onClick={() => setListModal(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+ 
       {/* ── MODAL CONFIRMAR ELIMINAR ── */}
       {confirmId && (
         <div className="overlay open">
@@ -966,4 +1030,3 @@ export default function AdminPage() {
     </div>
   )
 }
- 
