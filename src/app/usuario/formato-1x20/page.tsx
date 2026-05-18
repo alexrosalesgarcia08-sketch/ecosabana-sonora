@@ -197,7 +197,7 @@ export default function Formato1x20() {
         </div>
       </div>
  
-      <div style={{ maxWidth:'1100px', margin:'24px 28px', padding:'0' }}>
+      <div style={{ margin:'24px 28px' }}>
  
         {/* Progress bar */}
         <div style={{ background:'#fff', borderRadius:'14px', padding:'16px 20px', marginBottom:'20px',
@@ -226,7 +226,7 @@ export default function Formato1x20() {
         </div>
  
         {/* Datos del líder */}
-        <div className="modal" style={{ borderRadius:'18px', marginBottom:'20px' }}>
+        <div className="modal" style={{ borderRadius:'18px', marginBottom:'20px', width:'100%' }}>
           <div className="modal-header">
             <h2>👤 Tus datos como Líder del Formato</h2>
           </div>
@@ -377,4 +377,3 @@ export default function Formato1x20() {
     </div>
   )
 }
- 

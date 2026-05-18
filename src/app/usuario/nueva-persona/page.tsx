@@ -106,7 +106,7 @@ export default function NuevaPersonaUsuario() {
         </div>
       </div>
  
-      <div style={{ maxWidth: '960px', margin: '24px auto', padding: '0 28px' }}>
+      <div style={{ margin: '24px 28px' }}>
         <div className="modal" style={{ borderRadius: '18px', overflow: 'visible' }}>
           <div className="modal-header"><h2>Nueva Persona</h2></div>
           <div className="modal-body">
