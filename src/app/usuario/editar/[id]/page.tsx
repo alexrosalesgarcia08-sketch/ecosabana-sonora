@@ -157,7 +157,7 @@ export default function EditarPersonaUsuario() {
         </div>
       </div>
  
-      <div style={{ margin: '24px 28px' }}>
+      <div className="form-page-wrap">
         <div className="modal" style={{ borderRadius: '18px', overflow: 'visible' }}>
           <div className="modal-header"><h2>Editando: {form.nombre}</h2></div>
           <div className="modal-body">

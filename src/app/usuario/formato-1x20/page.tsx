@@ -197,7 +197,7 @@ export default function Formato1x20() {
         </div>
       </div>
  
-      <div style={{ margin:'24px 28px' }}>
+      <div className="form-page-wrap">
  
         {/* Progress bar */}
         <div style={{ background:'#fff', borderRadius:'14px', padding:'16px 20px', marginBottom:'20px',

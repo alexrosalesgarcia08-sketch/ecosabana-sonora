@@ -559,3 +559,16 @@ body {
   display: block !important;
 }
  
+/* Form pages - modal centered and properly sized */
+.form-page-wrap {
+  max-width: 860px;
+  margin: 28px auto;
+  padding: 0 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.form-page-wrap .modal {
+  max-width: 100%;
+  width: 100%;
+}
+ 
