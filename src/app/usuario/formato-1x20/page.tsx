@@ -226,7 +226,7 @@ export default function Formato1x20() {
         </div>
  
         {/* Datos del líder */}
-        <div className="modal" style={{ borderRadius:'18px', marginBottom:'20px', width:'100%' }}>
+        <div className="modal" style={{ borderRadius:'18px', marginBottom:'20px', width:'100%', maxWidth:'100%' }}>
           <div className="modal-header">
             <h2>👤 Tus datos como Líder del Formato</h2>
           </div>
@@ -283,7 +283,7 @@ export default function Formato1x20() {
         </div>
  
         {/* Las 20 personas */}
-        <div className="modal" style={{ borderRadius:'18px' }}>
+        <div className="modal" style={{ borderRadius:'18px', maxWidth:'100%' }}>
           <div className="modal-header">
             <h2>📋 Las 20 Personas</h2>
             <span style={{ fontSize:'13px', color:'#7a8060', fontWeight:600 }}>

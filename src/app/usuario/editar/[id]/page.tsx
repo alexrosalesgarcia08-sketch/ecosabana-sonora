@@ -323,4 +323,3 @@ export default function EditarPersonaUsuario() {
     </div>
   )
 }
- 
