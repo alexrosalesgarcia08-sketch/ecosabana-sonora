@@ -350,19 +350,50 @@ export default function AdminPage() {
  
       {/* ── STATS ── */}
       <div className="stats">
-        {statsCards.map(s => (
-          <div key={s.label} className="stat-card">
-            <div>
-              <div className="stat-label">{s.label}</div>
-              <div className="stat-value">{s.value}</div>
+        {statsCards.map(s => {
+          function getItems() {
+            if (s.label === 'ECOPERADORES') return personas.filter((p:any) => p.rol === 'Ecoperador')
+            if (s.label === 'RG') return [
+              ...personas.filter((p:any) => p.rol === 'RG'),
+              ...ecos.filter((e:any) => e.rg_nombre||e.rg_tel).map((e:any) => {
+                const eco = personas.find((p:any) => p.id === e.id)
+                return {nombre:e.rg_nombre,celular:e.rg_tel,banco:e.rg_banco,cuenta:e.rg_cuenta,rol:'RG',municipio:eco?.municipio,_eco:eco?.nombre}
+              })
+            ]
+            if (s.label === 'RC') return [
+              ...personas.filter((p:any) => p.rol === 'RC'),
+              ...rcsData.map((r:any) => {
+                const eco = personas.find((p:any) => p.id === r.eco_id)
+                return {nombre:r.nombre,celular:r.tel,banco:r.banco,cuenta:r.cuenta,rol:'RC',municipio:eco?.municipio,_eco:eco?.nombre}
+              })
+            ]
+            if (s.label === 'OBSERVADORES') return [
+              ...personas.filter((p:any) => p.rol === 'Observador'),
+              ...obsData.map((o:any) => {
+                const rc = rcsData.find((r:any) => r.id === o.rc_id)
+                const eco = personas.find((p:any) => p.id === rc?.eco_id)
+                return {nombre:o.nombre,celular:o.tel,banco:o.banco,cuenta:o.cuenta,rol:'Observador',municipio:eco?.municipio,_eco:eco?.nombre}
+              })
+            ]
+            if (s.label === 'TOTAL') return personas
+            if (s.label === 'CASILLAS') return personas.filter((p:any) => (p.casilla||0) > 0)
+            return []
+          }
+          return (
+            <div key={s.label} className="stat-card" style={{cursor:s.value>0?'pointer':'default'}}
+              onClick={() => { const items = getItems(); if(items.length>0) setListModal({tipo:s.label,items}) }}>
+              <div>
+                <div className="stat-label">{s.label}</div>
+                <div className="stat-value">{s.value}</div>
+              </div>
+              <div className="stat-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </div>
             </div>
-            <div className="stat-icon">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
  
       {/* ── FILTERS ── */}
@@ -465,9 +496,9 @@ export default function AdminPage() {
       {/* ── MODAL 1x20 ADMIN ── */}
       {modal1x20 && (
         <div className="overlay open">
-          <div className="modal" style={{ maxWidth:'750px' }}>
+          <div className="modal" style={{ maxWidth:'800px' }}>
             <div className="modal-header">
-              <h2>📋 Formato 1x20 — Lista de participantes</h2>
+              <h2>📋 Formato 1x20 — Participantes</h2>
               <button className="modal-close" onClick={() => setModal1x20(false)}>×</button>
             </div>
             <div className="modal-body" style={{ padding:'16px 20px' }}>
@@ -476,81 +507,69 @@ export default function AdminPage() {
                   Ningún usuario ha iniciado el Formato 1x20 todavía.
                 </p>
               ) : (
-                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'13px' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
                   <thead>
                     <tr>
-                      {['Líder','Municipio','Personas agregadas','Estado','Pago','Acciones'].map(h=>(
-                        <th key={h} style={{ padding:'10px 12px', background:'linear-gradient(135deg,#eef6d0,#f7fbe8)',
+                      {['Eco Coordinador','Presidente Comité','Municipio','Personas','Estado','Pago Eco','Pago Pres','Acciones'].map(h=>(
+                        <th key={h} style={{ padding:'9px 10px', background:'linear-gradient(135deg,#eef6d0,#f7fbe8)',
                           borderBottom:'2px solid #C8DF8E', color:'#3d5a09', fontWeight:700,
-                          fontSize:'10px', textTransform:'uppercase', letterSpacing:'.05em', textAlign:'left' }}>{h}</th>
+                          fontSize:'10px', textTransform:'uppercase', textAlign:'left', whiteSpace:'nowrap' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {formatos1x20.map((f:any) => {
-                      const pagado = f.pago_realizado
-                      return (
-                        <tr key={f.id} style={{ borderBottom:'1px solid #eef3e0',
-                          background: pagado ? 'rgba(143,191,37,.07)' : f.completo ? 'rgba(26,115,200,.04)' : '#fff' }}>
-                          <td style={{ padding:'10px 12px', fontWeight:700 }}>
-                            {f.nombre || '(sin nombre)'}
-                            {f.notificado && !pagado && (
-                              <span style={{ marginLeft:'6px', background:'rgba(239,65,53,.15)',
-                                color:'#c0392b', borderRadius:'10px', padding:'1px 7px', fontSize:'10px', fontWeight:700 }}>
-                                ¡Completo!
-                              </span>
-                            )}
-                            {pagado && (
-                              <span style={{ marginLeft:'6px', background:'rgba(0,177,90,.15)',
-                                color:'#006633', borderRadius:'10px', padding:'1px 7px', fontSize:'10px', fontWeight:700 }}>
-                                ✓ Pagado
-                              </span>
-                            )}
-                          </td>
-                          <td style={{ padding:'10px 12px', color:'#555' }}>{f.municipio||'—'}</td>
-                          <td style={{ padding:'10px 12px' }}>
-                            <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                              <div style={{ flex:1, background:'#e8f5e9', borderRadius:'6px', height:'8px',
-                                overflow:'hidden', minWidth:'80px' }}>
-                                <div style={{ background: f.completo ? 'linear-gradient(90deg,#5a8012,#00B15A)' : '#8FBF25',
-                                  width:`${((f.personas_count||0)/20)*100}%`, height:'100%', transition:'width .3s' }}/>
-                              </div>
-                              <span style={{ fontSize:'12px', fontWeight:700,
-                                color: f.completo ? '#2a8540' : '#7a8060' }}>
-                                {f.personas_count||0}/20
-                              </span>
+                    {formatos1x20.map((f:any) => (
+                      <tr key={f.id} style={{ borderBottom:'1px solid #eef3e0',
+                        background: f.eco_pago_realizado && f.pres_pago_realizado ? 'rgba(143,191,37,.07)' : '#fff' }}>
+                        <td style={{ padding:'9px 10px', fontWeight:700 }}>
+                          {f.nombre||'—'}
+                          {f.notificado && (!f.eco_pago_realizado) && (
+                            <span style={{ marginLeft:'6px', background:'rgba(239,65,53,.15)',
+                              color:'#c0392b', borderRadius:'10px', padding:'1px 7px', fontSize:'10px', fontWeight:700 }}>
+                              ¡Completo!
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding:'9px 10px' }}>{f.pres_nombre||'—'}</td>
+                        <td style={{ padding:'9px 10px', color:'#555' }}>{f.municipio||'—'}</td>
+                        <td style={{ padding:'9px 10px' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                            <div style={{ flex:1, background:'#e8f5e9', borderRadius:'6px', height:'7px', overflow:'hidden', minWidth:'50px' }}>
+                              <div style={{ background: f.completo ? 'linear-gradient(90deg,#5a8012,#00B15A)' : '#8FBF25',
+                                width:`${((f.personas_count||0)/20)*100}%`, height:'100%' }}/>
                             </div>
-                          </td>
-                          <td style={{ padding:'10px 12px' }}>
-                            {pagado
-                              ? <span className="badge badge-val">Pagado</span>
-                              : f.completo
-                              ? <span className="badge badge-cred">Completo</span>
-                              : <span className="badge badge-pend">En progreso</span>}
-                          </td>
-                          <td style={{ padding:'10px 12px', fontWeight:700,
-                            color: pagado ? '#2a8540' : f.completo ? '#0a5c3e' : '#aaa' }}>
-                            {f.completo || pagado ? '$300' : '—'}
-                          </td>
-                          <td style={{ padding:'10px 12px' }}>
-                            {!pagado && f.completo && (
-                              <button onClick={() => setPagoLider(f)}
-                                style={{ background:'#2a8540', color:'#fff', border:'none',
-                                  borderRadius:'8px', padding:'6px 14px', fontWeight:700,
-                                  fontSize:'12px', cursor:'pointer', fontFamily:'var(--font)' }}>
-                                💰 Pagar
-                              </button>
-                            )}
-                            {pagado && (
-                              <span style={{ color:'#2a8540', fontWeight:700, fontSize:'12px' }}>✓ Pagado</span>
-                            )}
-                            {!f.completo && (
-                              <span style={{ color:'#aaa', fontSize:'12px' }}>Sin completar</span>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
+                            <span style={{ fontSize:'11px', fontWeight:700, color: f.completo ? '#2a8540' : '#7a8060' }}>
+                              {f.personas_count||0}/20
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ padding:'9px 10px' }}>
+                          {f.completo
+                            ? <span className="badge badge-cred">Completo</span>
+                            : <span className="badge badge-pend">En progreso</span>}
+                        </td>
+                        <td style={{ padding:'9px 10px' }}>
+                          {f.eco_pago_realizado
+                            ? <span style={{ color:'#2a8540', fontSize:'11px', fontWeight:700 }}>✓ $300</span>
+                            : <span style={{ color: f.completo ? '#c0392b' : '#aaa', fontSize:'11px', fontWeight:700 }}>{f.completo?'$300 pend.':'—'}</span>}
+                        </td>
+                        <td style={{ padding:'9px 10px' }}>
+                          {f.pres_pago_realizado
+                            ? <span style={{ color:'#2a8540', fontSize:'11px', fontWeight:700 }}>✓ ${(f.personas_count||0)*50}</span>
+                            : <span style={{ color: f.completo ? '#c0392b' : '#aaa', fontSize:'11px', fontWeight:700 }}>{f.completo?`$${(f.personas_count||0)*50} pend.`:'—'}</span>}
+                        </td>
+                        <td style={{ padding:'9px 10px' }}>
+                          {f.completo && (
+                            <button onClick={() => setPagoLider(f)}
+                              style={{ background:'#2a8540', color:'#fff', border:'none',
+                                borderRadius:'8px', padding:'5px 12px', fontWeight:700,
+                                fontSize:'11px', cursor:'pointer', fontFamily:'var(--font)' }}>
+                              💰 Pagar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               )}
@@ -566,58 +585,140 @@ export default function AdminPage() {
       {/* ── MODAL PAGO LÍDER 1x20 ── */}
       {pagoLider && (
         <div className="overlay open">
-          <div className="modal" style={{ maxWidth:'480px' }}>
+          <div className="modal" style={{ maxWidth:'560px' }}>
             <div className="modal-header">
-              <h2>💰 Pagar al Líder — Formato 1x20</h2>
+              <h2>💰 Pagos — Formato 1x20</h2>
               <button className="modal-close" onClick={() => setPagoLider(null)}>×</button>
             </div>
             <div className="modal-body">
-              <div className="pay-section">
-                <h4>👤 Datos del Líder</h4>
-                {[
-                  ['Nombre', pagoLider.nombre],
-                  ['Teléfono', pagoLider.telefono],
-                  ['Municipio', pagoLider.municipio],
-                  ['Banco', pagoLider.banco],
-                  ['Cuenta', pagoLider.cuenta],
-                  ['Clave Elector', pagoLider.clave_elector],
-                  ['Sexo', pagoLider.sexo],
-                  ['Edad', pagoLider.edad],
-                ].filter((row) => row[1]).map((row) => (
-                  <div key={String(row[0])} className="pay-person-row">
-                    <div style={{ color:'#7a8060', fontSize:'12px' }}>{row[0]}</div>
-                    <div style={{ fontWeight:700, fontSize:'13px' }}>{String(row[1])}</div>
+ 
+              {/* ECO COORDINADOR */}
+              <div className="pay-section" style={{ marginBottom:'16px' }}>
+                <h4>🌱 Eco Coordinador — $300</h4>
+                <div className="pay-person-row">
+                  <div style={{ flex:1 }}>
+                    <div className="pay-name">{pagoLider.nombre||'—'}</div>
+                    <div className="pay-account">
+                      {pagoLider.banco||'Sin banco'}{pagoLider.cuenta?' · '+pagoLider.cuenta:''}
+                    </div>
+                    {[['Tel',pagoLider.telefono],['Municipio',pagoLider.municipio],['Clave Elector',pagoLider.clave_elector]].filter(r=>r[1]).map(r=>(
+                      <div key={String(r[0])} style={{ fontSize:'11px', color:'#7a8060' }}>{r[0]}: {r[1]}</div>
+                    ))}
                   </div>
-                ))}
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'6px' }}>
+                    <strong style={{ color:'#0a5c3e', fontSize:'16px' }}>$300</strong>
+                    {pagoLider.eco_pago_realizado
+                      ? <span style={{ color:'#2a8540', fontWeight:700, fontSize:'12px' }}>✓ Pagado</span>
+                      : (
+                        <div style={{ display:'flex', flexDirection:'column', gap:'6px', alignItems:'flex-end' }}>
+                          <label style={{ fontSize:'11px', fontWeight:700, color:'#3d5a09' }}>
+                            📎 Foto comprobante:
+                          </label>
+                          {pagoLider.eco_foto_comprobante
+                            ? <img src={pagoLider.eco_foto_comprobante} style={{ width:'80px', height:'60px', objectFit:'cover', borderRadius:'6px', border:'2px solid #C8DF8E' }}/>
+                            : null}
+                          <input type="file" accept="image/*" id="eco-comp"
+                            style={{ fontSize:'11px', width:'160px' }}
+                            onChange={async e => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              const r = new FileReader()
+                              r.onload = ev => setPagoLider((p:any) => ({...p, eco_foto_comprobante: ev.target?.result as string}))
+                              r.readAsDataURL(file)
+                            }}/>
+                          <button
+                            disabled={!pagoLider.eco_foto_comprobante}
+                            onClick={async () => {
+                              await supabase.from('formato_1x20').update({ eco_pago_realizado:true, eco_foto_comprobante: pagoLider.eco_foto_comprobante }).eq('id', pagoLider.id)
+                              setPagoLider((p:any) => ({...p, eco_pago_realizado:true}))
+                              loadAll()
+                              alert('✅ Pago Eco Coordinador registrado')
+                            }}
+                            style={{ background: pagoLider.eco_foto_comprobante ? '#2a8540' : '#aaa', color:'#fff', border:'none',
+                              borderRadius:'8px', padding:'6px 14px', fontWeight:700, fontSize:'12px',
+                              cursor: pagoLider.eco_foto_comprobante ? 'pointer' : 'not-allowed', fontFamily:'var(--font)' }}>
+                            ✓ Confirmar Pago $300
+                          </button>
+                        </div>
+                      )
+                    }
+                  </div>
+                </div>
               </div>
-              <div className="pay-total">
-                <span>Pago por Formato 1x20 completado</span>
-                <span>$300</span>
+ 
+              {/* PRESIDENTE DE COMITÉ */}
+              <div className="pay-section">
+                <h4>👥 Presidente de Comité — ${(pagoLider.personas_count||0)*50} ({pagoLider.personas_count||0}×$50)</h4>
+                <div className="pay-person-row">
+                  <div style={{ flex:1 }}>
+                    <div className="pay-name">{pagoLider.pres_nombre||'—'}</div>
+                    <div className="pay-account">
+                      {pagoLider.pres_banco||'Sin banco'}{pagoLider.pres_cuenta?' · '+pagoLider.pres_cuenta:''}
+                    </div>
+                    {[['Tel',pagoLider.pres_telefono],['Municipio',pagoLider.pres_municipio],['Clave Elector',pagoLider.pres_clave_elector]].filter(r=>r[1]).map(r=>(
+                      <div key={String(r[0])} style={{ fontSize:'11px', color:'#7a8060' }}>{r[0]}: {r[1]}</div>
+                    ))}
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'6px' }}>
+                    <strong style={{ color:'#185FA5', fontSize:'16px' }}>${(pagoLider.personas_count||0)*50}</strong>
+                    {pagoLider.pres_pago_realizado
+                      ? <>
+                          <span style={{ color:'#2a8540', fontWeight:700, fontSize:'12px' }}>✓ Pagado</span>
+                          {pagoLider.pres_foto_comprobante && (
+                            <img src={pagoLider.pres_foto_comprobante} style={{ width:'80px', height:'60px', objectFit:'cover', borderRadius:'6px', border:'2px solid #C8DF8E' }}/>
+                          )}
+                        </>
+                      : (
+                        <div style={{ display:'flex', flexDirection:'column', gap:'6px', alignItems:'flex-end' }}>
+                          <label style={{ fontSize:'11px', fontWeight:700, color:'#3d5a09' }}>
+                            📎 Foto comprobante:
+                          </label>
+                          {pagoLider.pres_foto_comprobante
+                            ? <img src={pagoLider.pres_foto_comprobante} style={{ width:'80px', height:'60px', objectFit:'cover', borderRadius:'6px', border:'2px solid #C8DF8E' }}/>
+                            : null}
+                          <input type="file" accept="image/*" id="pres-comp"
+                            style={{ fontSize:'11px', width:'160px' }}
+                            onChange={async e => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              const r = new FileReader()
+                              r.onload = ev => setPagoLider((p:any) => ({...p, pres_foto_comprobante: ev.target?.result as string}))
+                              r.readAsDataURL(file)
+                            }}/>
+                          <button
+                            disabled={!pagoLider.pres_foto_comprobante}
+                            onClick={async () => {
+                              await supabase.from('formato_1x20').update({ pres_pago_realizado:true, pres_foto_comprobante: pagoLider.pres_foto_comprobante }).eq('id', pagoLider.id)
+                              setPagoLider((p:any) => ({...p, pres_pago_realizado:true}))
+                              loadAll()
+                              alert(`✅ Pago Presidente registrado ($${(pagoLider.personas_count||0)*50})`)
+                            }}
+                            style={{ background: pagoLider.pres_foto_comprobante ? '#185FA5' : '#aaa', color:'#fff', border:'none',
+                              borderRadius:'8px', padding:'6px 14px', fontWeight:700, fontSize:'12px',
+                              cursor: pagoLider.pres_foto_comprobante ? 'pointer' : 'not-allowed', fontFamily:'var(--font)' }}>
+                            ✓ Confirmar Pago ${(pagoLider.personas_count||0)*50}
+                          </button>
+                        </div>
+                      )
+                    }
+                  </div>
+                </div>
+              </div>
+ 
+              <div className="pay-total" style={{ marginTop:'16px' }}>
+                <span>Total a pagar</span>
+                <span>${300 + (pagoLider.personas_count||0)*50}</span>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }}
-                onClick={() => setPagoLider(null)}>Cancelar</button>
-              <button className="btn" style={{ background:'#2a8540', color:'#fff', fontWeight:700 }}
-                onClick={async () => {
-                  await supabase.from('formato_1x20').update({ pago_realizado: true }).eq('id', pagoLider.id)
-                  await supabase.from('notificaciones').insert({
-                    tipo: '1x20_pagado',
-                    mensaje: `Se registró pago de $300 a ${pagoLider.nombre} por Formato 1x20.`,
-                    usuario_id: pagoLider.usuario_id,
-                    leida: false
-                  })
-                  setPagoLider(null)
-                  loadAll()
-                  alert(`✅ Pago de $300 registrado para ${pagoLider.nombre}`)
-                }}>
-                ✓ Confirmar Pago $300
-              </button>
+                onClick={() => setPagoLider(null)}>Cerrar</button>
             </div>
           </div>
         </div>
       )}
  
+      {/* ── MODAL ESTADÍSTICAS ── */}
       {/* ── MODAL ESTADÍSTICAS ── */}
       {/* ── MODAL ESTADÍSTICAS ── */}
       {statsModal && (
