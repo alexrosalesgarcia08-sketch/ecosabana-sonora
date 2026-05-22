@@ -2,273 +2,451 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { MUNICIPIOS, BANCOS, RC_LABELS, STATUS_OPTS, calcPago } from '@/lib/constants'
+import { MUNICIPIOS, BANCOS } from '@/lib/constants'
  
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
  
-const emptyObs = () => ({ nombre: '', tel: '', banco: '', cuenta: '' })
-const emptyRc = () => ({ nombre: '', tel: '', banco: '', cuenta: '', obs1: emptyObs(), obs2: emptyObs() })
+const STATUS_OPTS = ['Localizado','Validado','Pagado','Credencializado']
+const DIST_LOCAL = Array.from({length:21},(_,i)=>i+1)
+const DIST_FED = Array.from({length:7},(_,i)=>i+1)
+const emptyRC = (n:number) => ({num:n, nombre:'', tel:'', banco:'', cuenta:''})
+ 
+function FotoUpload({label, hint, fkey, form, set, inputRef}:any) {
+  return (
+    <div className="form-group full">
+      <label style={{display:'flex',alignItems:'center',gap:'6px'}}>
+        {label}
+        <span title={hint} style={{cursor:'help',background:'#8FBF25',color:'#fff',
+          borderRadius:'50%',width:'16px',height:'16px',fontSize:'10px',fontWeight:900,
+          display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>?</span>
+        <span className="req">*</span>
+      </label>
+      <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 14px',
+        background:'#fafff4',border:'1.5px dashed rgba(143,191,37,.5)',borderRadius:'10px'}}>
+        {form[fkey]
+          ? <img src={form[fkey]} style={{width:'80px',height:'60px',objectFit:'cover',borderRadius:'6px',border:'2px solid #C8DF8E'}}/>
+          : <div style={{width:'80px',height:'60px',borderRadius:'6px',background:'#eef6d0',
+              border:'2px dashed #C8DF8E',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px'}}>📷</div>
+        }
+        <div>
+          <button type="button" onClick={()=>inputRef.current?.click()}
+            style={{padding:'7px 14px',border:'1px solid #C8DF8E',borderRadius:'8px',
+              background:'#fff',color:'#3d5a09',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:'var(--font)'}}>
+            {form[fkey] ? '🔄 Cambiar' : '⬆ Subir foto'}
+          </button>
+          <p style={{fontSize:'10px',color:'#7a8060',marginTop:'4px'}}>{hint}</p>
+        </div>
+        <input ref={inputRef} type="file" accept="image/*" style={{display:'none'}}
+          onChange={e=>{
+            const file=e.target.files?.[0]
+            if(!file)return
+            if(file.size>5*1024*1024){alert('Máximo 5MB');return}
+            const r=new FileReader()
+            r.onload=ev=>set(fkey,ev.target?.result as string)
+            r.readAsDataURL(file)
+          }}/>
+      </div>
+    </div>
+  )
+}
  
 export default function NuevaPersonaUsuario() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
-  const [foto, setFoto] = useState('')
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [dupNombre, setDupNombre] = useState('')
+  const [dupClave, setDupClave] = useState('')
+  const fotoRef = useRef<HTMLInputElement>(null)
+  const ineAnvRef = useRef<HTMLInputElement>(null)
+  const ineRevRef = useRef<HTMLInputElement>(null)
+  const selfieRef = useRef<HTMLInputElement>(null)
+ 
   const [form, setForm] = useState<any>({
-    nombre: '', celular: '', municipio: '', distrito: '', rol: '',
-    banco: '', cuenta: '', folio: '', casilla: '', status: [],
-    rg_nombre: '', rg_tel: '', rg_banco: '', rg_cuenta: '',
-    rcA: emptyRc(), rcB: emptyRc(), rcC: emptyRc(), rcD: emptyRc(),
+    nombre:'', telefono:'', sexo:'', edad:'', clave_elector:'',
+    calle:'', numero_ext:'', colonia:'', cp:'', seccion_electoral:'',
+    municipio:'', distrito_local:'', distrito_federal:'',
+    rol:'', banco:'', cuenta:'', folio:'',
+    status:[], observaciones:'', notas:'',
+    fecha_registro: new Date().toISOString().split('T')[0],
+    foto:'', foto_ine_anverso:'', foto_ine_reverso:'', foto_selfie:'',
+    rg_nombre:'', rg_tel:'', rg_banco:'', rg_cuenta:'',
   })
+  const [rcs, setRcs] = useState([emptyRC(1)])
  
-  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
-  const setRc = (slot: string, k: string, v: string) => setForm((f: any) => ({ ...f, ['rc' + slot]: { ...f['rc' + slot], [k]: v } }))
-  const setObs = (slot: string, num: string, k: string, v: string) => setForm((f: any) => ({ ...f, ['rc' + slot]: { ...f['rc' + slot], ['obs' + num]: { ...f['rc' + slot]['obs' + num], [k]: v } } }))
+  const set = (k:string,v:any) => setForm((f:any)=>({...f,[k]:v}))
  
-  function toggleStatus(s: string) {
-    setForm((f: any) => {
+  async function checkDupNombre(val:string) {
+    if(val.length < 4) return
+    const {data} = await supabase.from('personas').select('nombre').ilike('nombre',`%${val.trim()}%`).limit(1)
+    setDupNombre(data && data.length > 0 ? `⚠️ Ya existe: "${data[0].nombre}"` : '')
+  }
+ 
+  async function checkDupClave(val:string) {
+    if(val.length < 6) return
+    const {data} = await supabase.from('personas').select('nombre').eq('clave_elector',val.trim()).limit(1)
+    setDupClave(data && data.length > 0 ? `⚠️ Clave ya registrada para: "${data[0].nombre}"` : '')
+  }
+ 
+  function toggleStatus(s:string) {
+    setForm((f:any)=>{
       const cur = f.status as string[]
-      if (cur.includes(s)) return { ...f, status: cur.filter((x: string) => x !== s) }
-      if (cur.length >= 3) return f
-      return { ...f, status: [...cur, s] }
+      if(cur.includes(s)) return {...f,status:cur.filter((x:string)=>x!==s)}
+      return {...f,status:[...cur,s]}
     })
   }
  
-  function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 2 * 1024 * 1024) { alert('Máximo 2MB'); return }
-    const reader = new FileReader()
-    reader.onload = ev => setFoto(ev.target?.result as string)
-    reader.readAsDataURL(file)
-  }
+  function addRC() { setRcs(p=>[...p,emptyRC(p.length+1)]) }
+  function removeRC(i:number) { setRcs(p=>p.filter((_,j)=>j!==i).map((r,j)=>({...r,num:j+1}))) }
+  function setRC(i:number,k:string,v:string) { setRcs(p=>p.map((r,j)=>j===i?{...r,[k]:v}:r)) }
  
   async function handleSave() {
-    if (!form.nombre || !form.rol) { alert('Nombre y rol son requeridos'); return }
+    const required:[string,string][] = [
+      [form.nombre,'Nombre completo'],
+      [form.rol,'Rol'],
+      [form.municipio,'Municipio'],
+      [form.telefono,'Teléfono'],
+      [form.sexo,'Sexo'],
+      [form.edad,'Edad'],
+      [form.calle,'Calle'],
+      [form.colonia,'Colonia'],
+      [form.foto_ine_anverso,'Foto INE anverso'],
+      [form.foto_ine_reverso,'Foto INE reverso'],
+      [form.foto_selfie,'Foto selfie'],
+    ]
+    const missing = required.filter(([v])=>!v).map(([,l])=>l)
+    if(missing.length>0){alert(`Campos obligatorios faltantes:\n• ${missing.join('\n• ')}`);return}
+    if(dupNombre||dupClave){
+      if(!confirm('Hay posibles duplicados. ¿Continuar de todas formas?'))return
+    }
+ 
     setSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const {data:{user}} = await supabase.auth.getUser()
+    const hasRG = !!(form.rg_nombre||form.rg_tel)
+    const rcCount = rcs.filter(r=>r.nombre||r.tel).length
+    let pago = 0
+    if(form.rol==='Ecoperador') pago=(hasRG?100:0)+rcCount*50
+    else if(form.rol==='RG') pago=300
+    else if(form.rol==='RC'||form.rol==='Observador') pago=200
  
-    const hasRG = !!(form.rg_nombre || form.rg_tel)
-    const rcCount = RC_LABELS.filter(s => form['rc' + s]?.nombre || form['rc' + s]?.tel).length
-    const pago = calcPago(form.rol, hasRG, rcCount)
- 
-    const { data: persona, error } = await supabase.from('personas').insert({
-      nombre: form.nombre, celular: form.celular,
-      municipio: form.municipio, distrito: parseInt(form.distrito) || 0,
-      rol: form.rol, banco: form.banco, cuenta: form.cuenta,
-      folio: form.folio, casilla: parseInt(form.casilla) || 0,
-      status: form.status, pago_acum: pago, foto: foto || null,
+    const {data:persona,error} = await supabase.from('personas').insert({
+      nombre: form.nombre,
+      celular: form.telefono,
+      municipio: form.municipio,
+      distrito: parseInt(form.distrito_local)||0,
+      rol: form.rol,
+      banco: form.banco,
+      cuenta: form.cuenta,
+      folio: form.folio,
+      casilla: parseInt(form.seccion_electoral)||0,
+      status: form.status,
+      pago_acum: pago,
+      foto: form.foto||null,
+      clave_elector: form.clave_elector,
+      sexo: form.sexo,
+      edad: parseInt(form.edad)||null,
+      calle: form.calle,
+      numero_ext: form.numero_ext,
+      colonia: form.colonia,
+      cp: form.cp,
+      seccion: form.seccion_electoral,
+      distrito_local: parseInt(form.distrito_local)||null,
+      distrito_federal: parseInt(form.distrito_federal)||null,
+      observaciones: form.observaciones,
+      notas: form.notas,
+      foto_ine_anverso: form.foto_ine_anverso||null,
+      foto_ine_reverso: form.foto_ine_reverso||null,
+      foto_selfie: form.foto_selfie||null,
+      fecha_registro: form.fecha_registro,
       creado_por: user?.id
     }).select().single()
  
-    if (error) { alert('Error: ' + error.message); setSaving(false); return }
+    if(error){alert('Error: '+error.message);setSaving(false);return}
  
-    if (form.rol === 'Ecoperador' && persona) {
+    if(form.rol==='Ecoperador'&&persona){
       await supabase.from('ecoperadores').insert({
-        id: persona.id,
-        rg_nombre: form.rg_nombre, rg_tel: form.rg_tel,
-        rg_banco: form.rg_banco, rg_cuenta: form.rg_cuenta,
+        id:persona.id,
+        rg_nombre:form.rg_nombre,rg_tel:form.rg_tel,
+        rg_banco:form.rg_banco,rg_cuenta:form.rg_cuenta,
       })
- 
-      for (const slot of RC_LABELS) {
-        const rc = form['rc' + slot]
-        if (!rc.nombre && !rc.tel) continue
-        const { data: rcRow } = await supabase.from('rcs_eco').insert({
-          eco_id: persona.id, slot,
-          nombre: rc.nombre, tel: rc.tel, banco: rc.banco, cuenta: rc.cuenta
-        }).select().single()
- 
-        if (rcRow) {
-          for (const num of ['1', '2']) {
-            const obs = rc['obs' + num]
-            if (!obs.nombre && !obs.tel) continue
-            await supabase.from('observadores_rc').insert({
-              rc_id: rcRow.id, numero: parseInt(num),
-              nombre: obs.nombre, tel: obs.tel, banco: obs.banco, cuenta: obs.cuenta
-            })
-          }
-        }
+      for(const rc of rcs){
+        if(!rc.nombre&&!rc.tel)continue
+        await supabase.from('rcs_eco').insert({
+          eco_id:persona.id,slot:String(rc.num),
+          nombre:rc.nombre,tel:rc.tel,banco:rc.banco,cuenta:rc.cuenta
+        })
       }
     }
- 
     router.push('/usuario')
   }
  
+  const SectionTitle = ({children}:{children:any}) => (
+    <div className="section-title" style={{gridColumn:'1/-1',marginTop:'8px'}}>{children}</div>
+  )
+ 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f7ec', paddingBottom: '40px' }}>
+    <div style={{minHeight:'100vh',background:'#f4f7ec',paddingBottom:'40px'}}>
       <div className="header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <button className="btn btn-white" onClick={() => router.push('/usuario')}>← Volver</button>
+        <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+          <button className="btn btn-white" onClick={()=>router.push('/usuario')}>← Volver</button>
           <div className="header-title"><h1>Agregar Persona</h1><p>Sistema de gestión PVEM</p></div>
         </div>
       </div>
  
       <div className="form-page-wrap">
-        <div className="modal" style={{ borderRadius: '18px', overflow: 'visible' }}>
+        <div className="modal" style={{borderRadius:'18px',overflow:'visible',maxWidth:'100%'}}>
           <div className="modal-header"><h2>Nueva Persona</h2></div>
           <div className="modal-body">
             <div className="form-grid">
  
-              {/* FOTO */}
-              <div className="form-group full">
-                <div className="photo-upload-wrap">
-                  {foto
-                    ? <img src={foto} style={{ width: '68px', height: '68px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #C8DF8E' }} alt="foto" />
-                    : <div className="photo-placeholder" onClick={() => fileRef.current?.click()}>📷</div>}
-                  <div>
-                    <button type="button" className="photo-upload-btn" onClick={() => fileRef.current?.click()}>⬆ Subir foto</button>
-                    <p style={{ fontSize: '11px', color: '#7a8060', marginTop: '4px' }}>JPG, PNG · Máx 2MB</p>
-                  </div>
-                  <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFoto} />
-                </div>
-              </div>
- 
-              {/* DATOS BASICOS */}
-              <div className="form-group">
-                <label>Nombre completo <span className="req">*</span></label>
-                <input type="text" value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombres primero" />
-              </div>
-              <div className="form-group">
-                <label>Celular <span className="req">*</span></label>
-                <input type="tel" value={form.celular} onChange={e => set('celular', e.target.value)} placeholder="10 dígitos" />
-              </div>
-              <div className="form-group">
-                <label>Sección (No. casilla)</label>
-                <input type="number" value={form.casilla} onChange={e => set('casilla', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>No. de Folio</label>
-                <input type="text" value={form.folio} onChange={e => set('folio', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label>Municipio <span className="req">*</span></label>
-                <select className="form-select" value={form.municipio} onChange={e => set('municipio', e.target.value)}>
-                  <option value="">Selecciona municipio</option>
-                  {MUNICIPIOS.map(m => <option key={m}>{m}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Distrito</label>
-                <input type="number" value={form.distrito} onChange={e => set('distrito', e.target.value)} />
-              </div>
- 
-              {/* ROL */}
+              {/* ROL - primero para condicionar el resto */}
               <div className="form-group full">
                 <label>Rol <span className="req">*</span></label>
-                <select className="form-select" value={form.rol} onChange={e => set('rol', e.target.value)}>
+                <select className="form-select" value={form.rol} onChange={e=>set('rol',e.target.value)}>
                   <option value="">Selecciona rol</option>
-                  <option>Ecoperador</option>
-                  <option>RG</option>
-                  <option>RC</option>
-                  <option>Observador</option>
+                  <option>Ecoperador</option><option>RG</option>
+                  <option>RC</option><option>Observador</option>
                 </select>
               </div>
  
-              {/* STATUS */}
+              {/* FECHA DE REGISTRO */}
               <div className="form-group full">
-                <label>Status (máx. 3)</label>
+                <label>📅 Fecha de registro</label>
+                <input type="date" value={form.fecha_registro}
+                  onChange={e=>set('fecha_registro',e.target.value)}
+                  style={{padding:'8px 12px',border:'1.5px solid #D4D8C8',borderRadius:'9px',
+                    fontSize:'13px',fontFamily:'var(--font)',width:'220px'}}/>
+                <small style={{color:'#7a8060',fontSize:'11px',marginTop:'3px'}}>
+                  Puedes cambiar la fecha si la persona fue registrada en otra fecha
+                </small>
+              </div>
+ 
+              <SectionTitle>📋 Datos Generales</SectionTitle>
+ 
+              {/* NOMBRE */}
+              <div className="form-group full">
+                <label>Nombre completo (MAYÚSCULAS) <span className="req">*</span></label>
+                <input type="text" value={form.nombre}
+                  onChange={e=>{set('nombre',e.target.value.toUpperCase());checkDupNombre(e.target.value)}}
+                  placeholder="NOMBRE COMPLETO EN MAYÚSCULAS"
+                  style={{textTransform:'uppercase'}}/>
+                {dupNombre && <p style={{color:'#EF4135',fontSize:'11px',fontWeight:700,marginTop:'3px'}}>{dupNombre}</p>}
+              </div>
+ 
+              <div className="form-group">
+                <label>Teléfono <span className="req">*</span></label>
+                <input type="tel" value={form.telefono} onChange={e=>set('telefono',e.target.value)} placeholder="10 dígitos"/>
+              </div>
+ 
+              <div className="form-group">
+                <label>Sexo <span className="req">*</span></label>
+                <select className="form-select" value={form.sexo} onChange={e=>set('sexo',e.target.value)}>
+                  <option value="">Selecciona</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Femenino</option>
+                </select>
+              </div>
+ 
+              <div className="form-group">
+                <label>Edad <span className="req">*</span></label>
+                <input type="number" value={form.edad} onChange={e=>set('edad',e.target.value)} min="18" max="99" placeholder="Años"/>
+              </div>
+ 
+              <div className="form-group">
+                <label>Clave de Elector</label>
+                <input type="text" value={form.clave_elector}
+                  onChange={e=>{set('clave_elector',e.target.value.toUpperCase());checkDupClave(e.target.value)}}
+                  placeholder="18 caracteres" maxLength={18} style={{textTransform:'uppercase'}}/>
+                {dupClave && <p style={{color:'#EF4135',fontSize:'11px',fontWeight:700,marginTop:'3px'}}>{dupClave}</p>}
+              </div>
+ 
+              <SectionTitle>🏠 Dirección</SectionTitle>
+ 
+              <div className="form-group">
+                <label>Calle <span className="req">*</span></label>
+                <input type="text" value={form.calle} onChange={e=>set('calle',e.target.value)} placeholder="Nombre de la calle"/>
+              </div>
+              <div className="form-group">
+                <label>Número</label>
+                <input type="text" value={form.numero_ext} onChange={e=>set('numero_ext',e.target.value)} placeholder="Ej: 123"/>
+              </div>
+              <div className="form-group">
+                <label>Colonia <span className="req">*</span></label>
+                <input type="text" value={form.colonia} onChange={e=>set('colonia',e.target.value)} placeholder="Colonia o fraccionamiento"/>
+              </div>
+              <div className="form-group">
+                <label>Código Postal</label>
+                <input type="text" value={form.cp} onChange={e=>set('cp',e.target.value)} placeholder="CP" maxLength={5}/>
+              </div>
+              <div className="form-group">
+                <label>Sección Electoral</label>
+                <input type="text" value={form.seccion_electoral} onChange={e=>set('seccion_electoral',e.target.value)} placeholder="Sección"/>
+              </div>
+ 
+              <SectionTitle>🗺️ Ubicación Electoral</SectionTitle>
+ 
+              <div className="form-group">
+                <label>Municipio <span className="req">*</span></label>
+                <select className="form-select" value={form.municipio} onChange={e=>set('municipio',e.target.value)}>
+                  <option value="">Selecciona municipio</option>
+                  {MUNICIPIOS.map(m=><option key={m}>{m}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Distrito Local (1-21)</label>
+                <select className="form-select" value={form.distrito_local} onChange={e=>set('distrito_local',e.target.value)}>
+                  <option value="">Selecciona</option>
+                  {DIST_LOCAL.map(d=><option key={d} value={d}>Distrito {d}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Distrito Federal (1-7)</label>
+                <select className="form-select" value={form.distrito_federal} onChange={e=>set('distrito_federal',e.target.value)}>
+                  <option value="">Selecciona</option>
+                  {DIST_FED.map(d=><option key={d} value={d}>Distrito {d}</option>)}
+                </select>
+              </div>
+ 
+              <SectionTitle>💳 Datos de Pago</SectionTitle>
+ 
+              <div className="form-group">
+                <label>Banco</label>
+                <select className="form-select" value={form.banco} onChange={e=>set('banco',e.target.value)}>
+                  <option value="">Selecciona banco</option>
+                  {BANCOS.map(b=><option key={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Número de cuenta</label>
+                <input type="text" value={form.cuenta} onChange={e=>set('cuenta',e.target.value)} placeholder="Número de cuenta"/>
+              </div>
+              <div className="form-group">
+                <label>Folio</label>
+                <input type="text" value={form.folio} onChange={e=>set('folio',e.target.value)}/>
+              </div>
+ 
+              <SectionTitle>📊 Status</SectionTitle>
+              <div className="form-group full">
                 <div className="status-checks">
-                  {STATUS_OPTS.map(s => (
+                  {STATUS_OPTS.map((s,i)=>(
                     <label key={s} className="status-check">
-                      <input type="checkbox" checked={form.status.includes(s)} onChange={() => toggleStatus(s)} />
-                      {s}
+                      <input type="checkbox" checked={form.status.includes(s)} onChange={()=>toggleStatus(s)}/>
+                      <span style={{fontWeight:600}}>{String.fromCharCode(65+i)}) {s}</span>
                     </label>
                   ))}
                 </div>
               </div>
  
-              {/* BANCO/CUENTA */}
+              <SectionTitle>📝 Observaciones y Notas</SectionTitle>
               <div className="form-group">
-                <label>Banco</label>
-                <select className="form-select" value={form.banco} onChange={e => set('banco', e.target.value)}>
-                  <option value="">Selecciona banco</option>
-                  {BANCOS.map(b => <option key={b}>{b}</option>)}
-                </select>
+                <label>Observaciones</label>
+                <textarea value={form.observaciones} onChange={e=>set('observaciones',e.target.value)}
+                  rows={3} placeholder="Observaciones generales..."
+                  style={{padding:'8px 12px',border:'1.5px solid #D4D8C8',borderRadius:'9px',
+                    fontSize:'13px',width:'100%',fontFamily:'var(--font)',resize:'vertical'}}/>
               </div>
               <div className="form-group">
-                <label>Número de cuenta</label>
-                <input type="text" value={form.cuenta} onChange={e => set('cuenta', e.target.value)} placeholder="Número de cuenta" />
+                <label>Notas internas</label>
+                <textarea value={form.notas} onChange={e=>set('notas',e.target.value)}
+                  rows={3} placeholder="Notas internas..."
+                  style={{padding:'8px 12px',border:'1.5px solid #D4D8C8',borderRadius:'9px',
+                    fontSize:'13px',width:'100%',fontFamily:'var(--font)',resize:'vertical'}}/>
               </div>
  
-              {/* ECOPERADOR EXTRA */}
-              {form.rol === 'Ecoperador' && <>
-                <div className="section-title">Datos del RG</div>
+              <SectionTitle>📸 Fotografías <span style={{color:'#EF4135',fontSize:'11px',fontWeight:600}}>(Todas obligatorias)</span></SectionTitle>
+ 
+              {/* Foto perfil */}
+              <div className="form-group full">
+                <label>Foto de perfil (opcional)</label>
+                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                  {form.foto
+                    ? <img src={form.foto} style={{width:'64px',height:'64px',borderRadius:'50%',objectFit:'cover',border:'3px solid #C8DF8E'}}/>
+                    : <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'#eef6d0',
+                        border:'2px dashed #C8DF8E',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px'}}>📷</div>}
+                  <button type="button" onClick={()=>fotoRef.current?.click()}
+                    style={{padding:'7px 14px',border:'1px solid #C8DF8E',borderRadius:'8px',
+                      background:'#fff',color:'#3d5a09',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:'var(--font)'}}>
+                    ⬆ Subir foto perfil
+                  </button>
+                  <input ref={fotoRef} type="file" accept="image/*" style={{display:'none'}}
+                    onChange={e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>set('foto',ev.target?.result as string);r.readAsDataURL(f)}}/>
+                </div>
+              </div>
+ 
+              <FotoUpload label="INE Anverso (frente)" fkey="foto_ine_anverso" form={form} set={set} inputRef={ineAnvRef}
+                hint="Foto del frente de la INE. Sin flash, sin brillos, fondo neutro. Asegúrate que se vea el nombre y la foto claramente."/>
+              <FotoUpload label="INE Reverso (vuelta)" fkey="foto_ine_reverso" form={form} set={set} inputRef={ineRevRef}
+                hint="Foto de la parte trasera de la INE. Sin flash, sin brillos, fondo neutro. Asegúrate que se vea el código de barras."/>
+              <FotoUpload label="Foto Selfie" fkey="foto_selfie" form={form} set={set} inputRef={selfieRef}
+                hint="Foto selfie de frente. Sin poses, sin lentes, sin gorra, buena iluminación. Fondo neutro preferible."/>
+ 
+              {/* ECOPERADOR: RG y RCs dinámicos */}
+              {form.rol==='Ecoperador' && <>
+                <SectionTitle>👤 Datos del RG</SectionTitle>
                 <div className="form-group">
                   <label>Nombre del RG</label>
-                  <input type="text" value={form.rg_nombre} onChange={e => set('rg_nombre', e.target.value)} />
+                  <input type="text" value={form.rg_nombre} onChange={e=>set('rg_nombre',e.target.value)}/>
                 </div>
                 <div className="form-group">
                   <label>Teléfono RG</label>
-                  <input type="tel" value={form.rg_tel} onChange={e => set('rg_tel', e.target.value)} />
+                  <input type="tel" value={form.rg_tel} onChange={e=>set('rg_tel',e.target.value)}/>
                 </div>
                 <div className="form-group">
                   <label>Banco RG</label>
-                  <select className="form-select" value={form.rg_banco} onChange={e => set('rg_banco', e.target.value)}>
+                  <select className="form-select" value={form.rg_banco} onChange={e=>set('rg_banco',e.target.value)}>
                     <option value="">Selecciona</option>
-                    {BANCOS.map(b => <option key={b}>{b}</option>)}
+                    {BANCOS.map(b=><option key={b}>{b}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>Cuenta RG</label>
-                  <input type="text" value={form.rg_cuenta} onChange={e => set('rg_cuenta', e.target.value)} />
+                  <input type="text" value={form.rg_cuenta} onChange={e=>set('rg_cuenta',e.target.value)}/>
                 </div>
  
-                <div className="section-title">RCs (A, B, C, D)</div>
-                {RC_LABELS.map(slot => (
-                  <div key={slot} className="form-group full">
+                <div className="section-title" style={{gridColumn:'1/-1',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span>📋 RCs</span>
+                  <button type="button" onClick={addRC}
+                    style={{background:'#00B15A',color:'#fff',border:'none',borderRadius:'8px',
+                      padding:'5px 14px',fontWeight:700,fontSize:'12px',cursor:'pointer',fontFamily:'var(--font)'}}>
+                    + Agregar RC
+                  </button>
+                </div>
+ 
+                {rcs.map((rc,i)=>(
+                  <div key={i} className="form-group full">
                     <div className="subsection">
-                      <h4>RC — {slot}</h4>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                        <h4>RC #{rc.num}</h4>
+                        {rcs.length>1 && (
+                          <button type="button" onClick={()=>removeRC(i)}
+                            style={{background:'#EF4135',color:'#fff',border:'none',borderRadius:'6px',
+                              padding:'3px 10px',fontSize:'11px',cursor:'pointer',fontFamily:'var(--font)'}}>
+                            ✕ Quitar
+                          </button>
+                        )}
+                      </div>
                       <div className="sub-grid">
                         <div className="form-group">
-                          <label>Nombre RC {slot}</label>
-                          <input type="text" value={form['rc' + slot]?.nombre || ''} onChange={e => setRc(slot, 'nombre', e.target.value)} />
+                          <label>Nombre RC</label>
+                          <input type="text" value={rc.nombre} onChange={e=>setRC(i,'nombre',e.target.value)}/>
                         </div>
                         <div className="form-group">
                           <label>Teléfono</label>
-                          <input type="tel" value={form['rc' + slot]?.tel || ''} onChange={e => setRc(slot, 'tel', e.target.value)} />
+                          <input type="tel" value={rc.tel} onChange={e=>setRC(i,'tel',e.target.value)}/>
                         </div>
                         <div className="form-group">
                           <label>Banco RC</label>
-                          <select className="form-select" value={form['rc' + slot]?.banco || ''} onChange={e => setRc(slot, 'banco', e.target.value)}>
+                          <select className="form-select" value={rc.banco} onChange={e=>setRC(i,'banco',e.target.value)}>
                             <option value="">Selecciona</option>
-                            {BANCOS.map(b => <option key={b}>{b}</option>)}
+                            {BANCOS.map(b=><option key={b}>{b}</option>)}
                           </select>
                         </div>
                         <div className="form-group">
                           <label>Cuenta RC</label>
-                          <input type="text" value={form['rc' + slot]?.cuenta || ''} onChange={e => setRc(slot, 'cuenta', e.target.value)} />
+                          <input type="text" value={rc.cuenta} onChange={e=>setRC(i,'cuenta',e.target.value)}/>
                         </div>
                       </div>
- 
-                      {(form['rc' + slot]?.nombre || form['rc' + slot]?.tel) && <>
-                        <p style={{ fontSize: '11px', fontWeight: 600, color: '#7a8060', margin: '10px 0 7px' }}>Observadores de RC {slot}</p>
-                        {['1', '2'].map(num => (
-                          <div key={num} className="sub-grid" style={{ marginBottom: '8px' }}>
-                            <div className="form-group">
-                              <label>Obs {num} Nombre</label>
-                              <input type="text" value={form['rc' + slot]?.['obs' + num]?.nombre || ''} onChange={e => setObs(slot, num, 'nombre', e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                              <label>Obs {num} Tel</label>
-                              <input type="tel" value={form['rc' + slot]?.['obs' + num]?.tel || ''} onChange={e => setObs(slot, num, 'tel', e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                              <label>Obs {num} Banco</label>
-                              <select className="form-select" value={form['rc' + slot]?.['obs' + num]?.banco || ''} onChange={e => setObs(slot, num, 'banco', e.target.value)}>
-                                <option value="">Selecciona</option>
-                                {BANCOS.map(b => <option key={b}>{b}</option>)}
-                              </select>
-                            </div>
-                            <div className="form-group">
-                              <label>Obs {num} Cuenta</label>
-                              <input type="text" value={form['rc' + slot]?.['obs' + num]?.cuenta || ''} onChange={e => setObs(slot, num, 'cuenta', e.target.value)} />
-                            </div>
-                          </div>
-                        ))}
-                      </>}
                     </div>
                   </div>
                 ))}
@@ -277,9 +455,9 @@ export default function NuevaPersonaUsuario() {
             </div>
           </div>
           <div className="modal-footer">
-            <button className="btn" style={{ background: '#F2F4EE', border: '1px solid #D4D8C8' }} onClick={() => router.push('/usuario')}>Cancelar</button>
+            <button className="btn" style={{background:'#F2F4EE',border:'1px solid #D4D8C8'}} onClick={()=>router.push('/usuario')}>Cancelar</button>
             <button className="btn btn-green" onClick={handleSave} disabled={saving}>
-              {saving ? 'Guardando...' : '✓ Guardar'}
+              {saving?'Guardando...':'✓ Guardar Persona'}
             </button>
           </div>
         </div>
