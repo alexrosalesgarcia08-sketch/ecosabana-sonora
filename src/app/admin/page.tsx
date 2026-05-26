@@ -210,47 +210,194 @@ export default function AdminPage() {
     reader.onload = async (ev) => {
       try {
         const wb = XLSX.read(ev.target?.result, { type: 'array' })
-        let imported = 0
+ 
+        // ── Normalize helpers ──────────────────────────────────
+        function normMunicipio(raw: string): string {
+          const m = raw?.toString().trim().toUpperCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g,'') || ''
+          const map: Record<string,string> = {
+            'CAJE':'Cajeme','CAJEME':'Cajeme','CSJEME':'Cajeme',
+            'HERMOSILLO':'Hermosillo','NAVOJOA':'Navojoa','GUAYMAS':'Guaymas',
+            'GUAYMAS SONORA':'Guaymas','EMPALME':'Empalme','NOGALES':'Nogales',
+            'HUATABAMPO':'Huatabampo','ETCHOJOA':'Etchojoa',
+            'SAN LUIS RIO COLORADO':'San Luis Rio Colorado',
+            'SAN IGNACIO RIO MUERTO':'San Ignacio Rio Muerto',
+            'ALAMOS':'Alamos','ALTAR':'Altar',
+          }
+          return map[m] || raw?.toString().trim() || ''
+        }
+ 
+        function normBanco(raw: string): string {
+          const b = raw?.toString().trim().toUpperCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g,'') || ''
+          if (b.includes('BBVA')||b.includes('BANCOMER')) return 'BBVA'
+          if (b.includes('BANAMEX')||b.includes('CITIBANAMEX')||b.includes('NACIONAL DE MEXICO')||b.includes('CITIBANK')) return 'Citibanamex'
+          if (b.includes('SANTANDER')) return 'Santander'
+          if (b.includes('BANORTE')) return 'Banorte'
+          if (b.includes('HSBC')) return 'HSBC'
+          if (b.includes('SCOTIABANK')) return 'Scotiabank'
+          if (b.includes('INBURSA')) return 'Inbursa'
+          if (b.includes('AZTECA')) return 'Azteca'
+          if (b.includes('COPPEL')||b.includes('BANCOPPEL')) return 'Coppel'
+          if (b.includes('BAJIO')||b.includes('BAJÍO')) return 'Banbajio'
+          if (b.includes('SPIN')||b.includes('OXXO')) return 'SPIN by OXXO'
+          if (b.includes('HEY')) return 'Hey Banco'
+          if (b.includes('NU ')||b===('NU')||b.includes('NUBANK')) return 'Hey Banco'
+          if (b.includes('AFIRME')) return 'Afirme'
+          if (b.includes('BANSI')||b.includes('BANSÍ')) return 'Otro'
+          return raw?.toString().trim() || ''
+        }
+ 
+        function normDistrito(raw: any): number | null {
+          if (!raw) return null
+          const str = raw.toString().trim().toUpperCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g,'')
+          // Roman to number
+          const roman: Record<string,number> = {
+            'I':1,'II':2,'III':3,'IV':4,'V':5,'VI':6,'VII':7,'VIII':8,
+            'IX':9,'X':10,'XI':11,'XII':12,'XIII':13,'XIV':14,'XV':15,
+            'XVI':16,'XVII':17,'XVIII':18,'XIX':19,'XX':20,'XXI':21
+          }
+          if (roman[str] !== undefined) return roman[str]
+          const n = parseInt(str)
+          return isNaN(n) ? null : n
+        }
+ 
+        // ── Process sheets ──────────────────────────────────────
         const { data: { user } } = await supabase.auth.getUser()
+        let imported = 0, skipped = 0, dupes = 0
+        const dupList: string[] = []
  
         for (const sheetName of wb.SheetNames) {
-          const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1, defval: '' }) as any[][]
-          if (!rows.length) continue
-          const hdr = rows[0].map((h:any) => String(h).trim().toUpperCase())
-          const ci = (k: string) => hdr.findIndex((h:string) => h.includes(k.toUpperCase()))
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header:1, defval:'' }) as any[][]
+          if (rows.length < 2) continue
+          const hdr = rows[0].map((h:any) => String(h).trim().toUpperCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g,''))
  
-          const iNom = ci('NOMBRE'), iTel = ci('TELÉFONO') > -1 ? ci('TELÉFONO') : ci('CELULAR')
-          const iMun = ci('MUNICIPIO'), iBco = ci('BANCO'), iCta = ci('CUENTA')
-          const iRol = ci('ROL'), iPago = ci('PAGO')
+          // Detect column format
+          const isRGFormat = hdr.some(h => h.includes('APELLIDO PATERNO'))
+          const iNomCol = isRGFormat ? -1 : hdr.findIndex(h=>h.includes('NOMBRE'))
+          const iApPat = isRGFormat ? hdr.findIndex(h=>h.includes('APELLIDO PATERNO')) : -1
+          const iApMat = isRGFormat ? hdr.findIndex(h=>h.includes('APELLIDO MATERNO')) : -1
+          const iNomPart = isRGFormat ? hdr.findIndex(h=>h.includes('NOMBRE (ES)')||h.includes('NOMBRE(ES)')||h==='NOMBRE') : -1
+          const iTel = hdr.findIndex(h=>h.includes('TELEFONO')||h.includes('CELULAR'))
+          const iCalle = hdr.findIndex(h=>h==='CALLE')
+          const iNumExt = hdr.findIndex(h=>h.includes('NUMERO EXTERIOR')||h.includes('NUM EXT'))
+          const iColonia = hdr.findIndex(h=>h==='COLONIA')
+          const iCP = hdr.findIndex(h=>h.includes('CODIGO POSTAL')||h==='CP')
+          const iSeccion = hdr.findIndex(h=>h.includes('SECCION')||h.includes('SECCIÓN'))
+          const iClave = hdr.findIndex(h=>h.includes('CLAVE DE ELECTOR')||h.includes('CLAVE ELECTOR'))
+          const iMun = hdr.findIndex(h=>h.includes('MUNICIPIO'))
+          const iDistL = hdr.findIndex(h=>h.includes('DISTRITO LOCAL'))
+          const iDistF = hdr.findIndex(h=>h.includes('DISTRITO FEDERAL'))
+          const iBanco = hdr.findIndex(h=>h.includes('BANCO'))
+          const iCuenta = hdr.findIndex(h=>h.includes('TARJETA')||h.includes('CUENTA')||h.includes('NUMERO DE CUENTA'))
+          const iNotas = hdr.findIndex(h=>h==='NOTAS')
+          const iEco = hdr.findIndex(h=>h.includes('ECOPERADOR'))
+          const iFecha = hdr.findIndex(h=>h.includes('MARCA TEMPORAL')||h.includes('FECHA'))
  
           for (const row of rows.slice(1)) {
-            const nombre = String(row[iNom] || '').trim()
+            // Build nombre
+            let nombre = ''
+            if (isRGFormat) {
+              const apPat = String(row[iApPat]||'').trim()
+              const apMat = String(row[iApMat]||'').trim()
+              const nomP = String(row[iNomPart]||'').trim()
+              nombre = `${apPat} ${apMat} ${nomP}`.trim().replace(/\s+/g,' ').toUpperCase()
+            } else {
+              nombre = String(row[iNomCol]||'').trim().toUpperCase()
+            }
             if (!nombre) continue
-            const cel = String(row[iTel] || '').trim()
-            const exists = personas.find(p => p.nombre.toLowerCase() === nombre.toLowerCase() || (cel && p.celular === cel))
-            if (exists) continue
  
-            await supabase.from('personas').insert({
-              nombre, celular: cel,
-              municipio: iMun > -1 ? String(row[iMun] || '').trim() : '',
-              banco: iBco > -1 ? String(row[iBco] || '').trim() : '',
-              cuenta: iCta > -1 ? String(row[iCta] || '').trim() : '',
-              rol: iRol > -1 ? String(row[iRol] || 'Ecoperador').trim() : 'Ecoperador',
-              pago_acum: iPago > -1 ? parseFloat(String(row[iPago] || '0')) : 0,
-              status: [], creado_por: user?.id
+            // Check duplicate by nombre
+            const { data: existNom } = await supabase.from('personas')
+              .select('id,nombre').ilike('nombre', nombre).limit(1)
+            if (existNom && existNom.length > 0) {
+              dupes++
+              dupList.push(nombre)
+              continue
+            }
+ 
+            // Check duplicate by clave
+            const clave = iClave > -1 ? String(row[iClave]||'').trim().toUpperCase() : ''
+            if (clave) {
+              const { data: existClave } = await supabase.from('personas')
+                .select('id').eq('clave_elector', clave).limit(1)
+              if (existClave && existClave.length > 0) {
+                dupes++
+                dupList.push(`${nombre} (clave duplicada)`)
+                continue
+              }
+            }
+ 
+            const banco = iBanco > -1 ? normBanco(String(row[iBanco]||'')) : ''
+            const municipio = iMun > -1 ? normMunicipio(String(row[iMun]||'')) : ''
+            const distLocal = iDistL > -1 ? normDistrito(row[iDistL]) : null
+            const distFed = iDistF > -1 ? normDistrito(row[iDistF]) : null
+ 
+            // Parse fecha
+            let fechaReg = new Date().toISOString().split('T')[0]
+            if (iFecha > -1 && row[iFecha]) {
+              try {
+                const fd = new Date(String(row[iFecha]))
+                if (!isNaN(fd.getTime())) fechaReg = fd.toISOString().split('T')[0]
+              } catch {}
+            }
+ 
+            const { error } = await supabase.from('personas').insert({
+              nombre,
+              celular: iTel > -1 ? String(row[iTel]||'').replace(/\D/g,'').slice(0,10) : '',
+              municipio,
+              banco,
+              cuenta: iCuenta > -1 ? String(row[iCuenta]||'').replace(/\s/g,'') : '',
+              clave_elector: clave,
+              calle: iCalle > -1 ? String(row[iCalle]||'').trim() : '',
+              numero_ext: iNumExt > -1 ? String(row[iNumExt]||'').trim() : '',
+              colonia: iColonia > -1 ? String(row[iColonia]||'').trim() : '',
+              cp: iCP > -1 ? String(row[iCP]||'').trim() : '',
+              seccion: iSeccion > -1 ? String(row[iSeccion]||'').trim() : '',
+              distrito_local: distLocal,
+              distrito_federal: distFed,
+              notas: iNotas > -1 ? String(row[iNotas]||'').trim() : '',
+              rol: 'RG',
+              status: [],
+              pago_acum: 300,
+              fecha_registro: fechaReg,
+              creado_por: user?.id,
             })
-            imported++
+ 
+            if (error) {
+              console.error('Import error:', error.message, nombre)
+              skipped++
+            } else {
+              imported++
+              // If has eco name, save as ecoperador link note
+              if (iEco > -1 && row[iEco]) {
+                const ecoNombre = String(row[iEco]).trim().toUpperCase()
+                // Try to find eco in DB
+                const { data: ecoP } = await supabase.from('personas')
+                  .select('id').ilike('nombre', `%${ecoNombre.split(' ')[0]}%`).limit(1)
+              }
+            }
           }
         }
-        alert(`✅ Importadas: ${imported} personas nuevas`)
+ 
+        let msg = `✅ Importación completada:\n\n• Importados: ${imported}\n• Duplicados omitidos: ${dupes}\n• Errores: ${skipped}`
+        if (dupList.length > 0) {
+          msg += `\n\nDuplicados encontrados (${dupList.length}):\n` + dupList.slice(0,10).map(d=>`• ${d}`).join('\n')
+          if (dupList.length > 10) msg += `\n...y ${dupList.length-10} más`
+        }
+        alert(msg)
         loadAll()
-      } catch (err: any) { alert('Error al importar: ' + err.message) }
+      } catch (err: any) {
+        alert('Error al importar: ' + err.message)
+      }
     }
     reader.readAsArrayBuffer(file)
     e.target.value = ''
   }
  
-  const filtered = personas.filter(p =>
+    const filtered = personas.filter(p =>
     (!search || p.nombre?.toLowerCase().includes(search.toLowerCase()) || p.celular?.includes(search)) &&
     (!filterRol || p.rol === filterRol) &&
     (!filterMun || p.municipio === filterMun)
