@@ -498,6 +498,211 @@ export default function AdminPage() {
  
       <div className="page-footer">ECOSABANA Sonora 2027 · Partido Verde Ecologista de México · Sistema PVEM</div>
  
+      {/* ── MODAL PAGOS ── */}
+      {payModal && (
+        <div className="overlay open">
+          <div className="modal" style={{ maxWidth:'520px' }}>
+            <div className="modal-header">
+              <h2>💳 Detalle de Pago</h2>
+              <button className="modal-close" onClick={() => setPayModal(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              {payModal.simple ? (
+                <div className="pay-section">
+                  <h4>{payModal.p.rol} — ${payModal.p.pago_acum || 0}</h4>
+                  <div className="pay-person-row">
+                    <div>
+                      <div className="pay-name">{payModal.p.nombre}
+                        {isPaid(payModal.p.id,'simple') && <span className="already-paid-badge" style={{marginLeft:'8px'}}>✓ Pagado Cat.{payModal.cat}</span>}
+                      </div>
+                      <div className="pay-account">{payModal.p.banco||'Sin banco'}{payModal.p.cuenta?' · '+payModal.p.cuenta:''}</div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                      <strong style={{color:'#0a5c3e'}}>${payModal.p.pago_acum||0}</strong>
+                      <button className={`btn-pay-action${isPaid(payModal.p.id,'simple')?' paid':''}`}
+                        onClick={()=>doRegisterPay(payModal.p.id,'simple',payModal.p.pago_acum||0)}>
+                        {isPaid(payModal.p.id,'simple')?'✓ Pagado':'💳 Pagar'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="pay-total">
+                    <span>Total (Cat. {payModal.cat}/{payModal.yr})</span>
+                    <span>${payModal.p.pago_acum||0}</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="pay-section">
+                    <h4>🌱 Ecoperador — ${payModal.ecoTotal}</h4>
+                    <div className="pay-person-row">
+                      <div>
+                        <div className="pay-name">{payModal.p.nombre}
+                          {isPaid(payModal.p.id,'eco') && <span className="already-paid-badge" style={{marginLeft:'8px'}}>✓ Cat.{payModal.cat}</span>}
+                        </div>
+                        <div className="pay-account">{payModal.p.banco||'Sin banco'}{payModal.p.cuenta?' · '+payModal.p.cuenta:''}</div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                        <strong>${payModal.ecoTotal}</strong>
+                        <button className={`btn-pay-action${isPaid(payModal.p.id,'eco')?' paid':''}`}
+                          onClick={()=>doRegisterPay(payModal.p.id,'eco',payModal.ecoTotal)}>
+                          {isPaid(payModal.p.id,'eco')?'✓ Pagado':'💳 Pagar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {payModal.hasRG && (
+                    <div className="pay-section" style={{marginTop:'10px'}}>
+                      <h4>👤 RG — ${payModal.rgTotal}</h4>
+                      <div className="pay-person-row">
+                        <div>
+                          <div className="pay-name">{payModal.eco?.rg_nombre||'(sin nombre)'}
+                            {isPaid(payModal.p.id,'rg') && <span className="already-paid-badge" style={{marginLeft:'8px'}}>✓ Pagado</span>}
+                          </div>
+                          <div className="pay-account">{payModal.eco?.rg_banco}{payModal.eco?.rg_cuenta?' · '+payModal.eco.rg_cuenta:''}</div>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                          <strong style={{color:'#185FA5'}}>${payModal.rgTotal}</strong>
+                          <button className={`btn-pay-action${isPaid(payModal.p.id,'rg')?' paid':''}`}
+                            style={{background:isPaid(payModal.p.id,'rg')?'':'#185FA5'}}
+                            onClick={()=>doRegisterPay(payModal.p.id,'rg',payModal.rgTotal)}>
+                            {isPaid(payModal.p.id,'rg')?'✓ Pagado':'💳 Pagar RG'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {payModal.myRcs.length > 0 && (
+                    <div className="pay-section" style={{marginTop:'10px'}}>
+                      <h4>📋 RCs — $200 c/u</h4>
+                      {payModal.myRcs.map((rc:any)=>(
+                        <div key={rc.id} className="pay-person-row">
+                          <div>
+                            <div className="pay-name">RC {rc.slot}: {rc.nombre||'(sin nombre)'}
+                              {isPaid(payModal.p.id,'rc_'+rc.slot) && <span className="already-paid-badge" style={{marginLeft:'8px'}}>✓ Pagado</span>}
+                            </div>
+                            <div className="pay-account">{rc.banco}{rc.cuenta?' · '+rc.cuenta:''}</div>
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                            <strong>$200</strong>
+                            <button className={`btn-pay-action${isPaid(payModal.p.id,'rc_'+rc.slot)?' paid':''}`}
+                              style={{background:isPaid(payModal.p.id,'rc_'+rc.slot)?'':'#5a8012'}}
+                              onClick={()=>doRegisterPay(payModal.p.id,'rc_'+rc.slot,200)}>
+                              {isPaid(payModal.p.id,'rc_'+rc.slot)?'✓ Pagado':'💳 Pagar RC'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="pay-total">
+                    <span>Total (Cat. {payModal.cat}/{payModal.yr})</span>
+                    <span>${payModal.ecoTotal + payModal.rgTotal + payModal.myRcs.length * 200}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn" style={{background:'#F2F4EE',border:'1px solid #D4D8C8'}} onClick={()=>setPayModal(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+ 
+      {/* ── MODAL CREDENCIAL ── */}
+      {credModal && (
+        <div className="overlay open">
+          <div className="modal" style={{ maxWidth:'560px' }}>
+            <div className="modal-header">
+              <h2>🖨️ Credencial — {credModal.nombre}</h2>
+              <button className="modal-close" onClick={() => setCredModal(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'16px' }}>
+                {[
+                  ['foto','Foto'],['nombre','Nombre'],['rol','Rol'],['celular','Celular'],
+                  ['municipio','Municipio'],['distrito','Distrito'],['folio','Folio'],
+                  ['casilla','Sección/Casilla'],['banco','Banco'],['cuenta','Cuenta'],['status','Status'],
+                ].map(([k,label]) => (
+                  <label key={k} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'7px 10px',
+                    border:'1px solid rgba(143,191,37,.3)', borderRadius:'9px', cursor:'pointer',
+                    background: credFields[k] ? '#eef6d0' : '#fff', transition:'all .12s' }}>
+                    <input type="checkbox" checked={!!credFields[k]}
+                      onChange={e => setCredFields((prev:any) => ({...prev, [k]: e.target.checked}))}
+                      style={{ width:'14px', height:'14px', accentColor:'#00B15A' }}/>
+                    <span style={{ fontSize:'13px', fontWeight:600, color:'#3d5a09' }}>{label}</span>
+                  </label>
+                ))}
+              </div>
+              <p style={{ fontSize:'11px', color:'#7a8060', marginBottom:'8px', fontWeight:600 }}>
+                Vista previa — Zebra ZC300 (85.6 × 54 mm)
+              </p>
+              <div id="cred-preview" style={{
+                width:'323px', height:'204px',
+                background:'linear-gradient(135deg,#f8fef0 0%,#eef6d0 100%)',
+                border:'2px solid #C8DF8E', borderRadius:'12px',
+                padding:'14px', display:'flex', gap:'12px', alignItems:'flex-start',
+                position:'relative', overflow:'hidden', margin:'0 auto',
+              }}>
+                <div style={{ position:'absolute', top:0, left:0, right:0, height:'5px',
+                  background:'linear-gradient(90deg,#3d5a09,#00B15A)' }}/>
+                <div style={{ position:'absolute', top:'10px', right:'10px',
+                  width:'28px', height:'28px', borderRadius:'50%',
+                  background:'linear-gradient(135deg,#5a8012,#00B15A)',
+                  display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ color:'#fff', fontSize:'14px', fontWeight:900 }}>V</span>
+                </div>
+                {credFields['foto'] && (
+                  <div style={{ flexShrink:0 }}>
+                    {credModal.foto
+                      ? <img src={credModal.foto} style={{ width:'64px', height:'80px', objectFit:'cover', borderRadius:'8px', border:'2px solid #C8DF8E', marginTop:'6px' }}/>
+                      : <div style={{ width:'64px', height:'80px', borderRadius:'8px',
+                          background:'#eef6d0', border:'2px dashed #C8DF8E',
+                          display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', marginTop:'6px' }}>👤</div>}
+                  </div>
+                )}
+                <div style={{ flex:1, marginTop:'8px' }}>
+                  {credFields['nombre'] && <div style={{ fontSize:'14px', fontWeight:800, color:'#2e4a08', lineHeight:1.2, marginBottom:'2px' }}>{credModal.nombre}</div>}
+                  {credFields['rol'] && <div style={{ fontSize:'10px', fontWeight:700, color:'#fff', background:'linear-gradient(135deg,#5a8012,#00B15A)', display:'inline-block', padding:'2px 8px', borderRadius:'10px', marginBottom:'6px' }}>{credModal.rol}</div>}
+                  <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+                    {credFields['celular'] && credModal.celular && <div style={{ fontSize:'10px', color:'#4a5030' }}>📱 {credModal.celular}</div>}
+                    {credFields['municipio'] && credModal.municipio && <div style={{ fontSize:'10px', color:'#4a5030' }}>📍 {credModal.municipio}</div>}
+                    {credFields['distrito'] && credModal.distrito && <div style={{ fontSize:'10px', color:'#4a5030' }}>🗳️ Dist. {credModal.distrito}</div>}
+                    {credFields['folio'] && credModal.folio && <div style={{ fontSize:'10px', color:'#4a5030' }}>📄 Folio: {credModal.folio}</div>}
+                    {credFields['casilla'] && credModal.casilla && <div style={{ fontSize:'10px', color:'#4a5030' }}>🏛️ Secc. {credModal.casilla}</div>}
+                    {credFields['banco'] && credModal.banco && <div style={{ fontSize:'10px', color:'#4a5030' }}>🏦 {credModal.banco}</div>}
+                    {credFields['cuenta'] && credModal.cuenta && <div style={{ fontSize:'10px', color:'#4a5030' }}>💳 {credModal.cuenta}</div>}
+                    {credFields['status'] && credModal.status?.length > 0 && <div style={{ fontSize:'10px', color:'#4a5030' }}>{(credModal.status as string[]).join(' · ')}</div>}
+                  </div>
+                </div>
+                <div style={{ position:'absolute', bottom:'6px', left:'14px', right:'14px',
+                  borderTop:'1px solid rgba(143,191,37,.3)', paddingTop:'4px',
+                  display:'flex', justifyContent:'space-between' }}>
+                  <span style={{ fontSize:'8px', color:'#8FBF25', fontWeight:700 }}>ECOSABANA Sonora 2027</span>
+                  <span style={{ fontSize:'8px', color:'#8FBF25', fontWeight:700 }}>PVEM</span>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }} onClick={() => setCredModal(null)}>Cerrar</button>
+              <button className="btn" style={{ background:'#1a73c8', color:'#fff', fontWeight:700 }}
+                onClick={() => {
+                  const preview = document.getElementById('cred-preview')
+                  if (!preview) return
+                  const w = window.open('', '_blank', 'width=400,height=300')
+                  if (!w) return
+                  w.document.write(`<!DOCTYPE html><html><head>
+                    <title>Credencial</title>
+                    <style>@page{size:85.6mm 54mm;margin:0}body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>
+                  </head><body>${preview.outerHTML}<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script></body></html>`)
+                  w.document.close()
+                }}>
+                🖨️ Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+ 
       {/* ── MODAL 1x20 ADMIN ── */}
       {modal1x20 && (
         <div className="overlay open">
