@@ -27,6 +27,10 @@ export default function AdminPage() {
   // Modal states
   const [payModal, setPayModal] = useState<any>(null)
   const [statsModal, setStatsModal] = useState(false)
+  const [statsFilter, setStatsFilter] = useState<'catorcena'|'fecha'>('catorcena')
+  const [statsCat, setStatsCat] = useState('')
+  const [statsDesde, setStatsDesde] = useState('')
+  const [statsHasta, setStatsHasta] = useState('')
   const [modal1x20, setModal1x20] = useState(false)
   const [formatos1x20, setFormatos1x20] = useState<any[]>([])  
   const [notifs, setNotifs] = useState<any[]>([])
@@ -719,11 +723,9 @@ export default function AdminPage() {
       )}
  
       {/* ── MODAL ESTADÍSTICAS ── */}
-      {/* ── MODAL ESTADÍSTICAS ── */}
-      {/* ── MODAL ESTADÍSTICAS ── */}
       {statsModal && (
         <div className="overlay open">
-          <div className="modal" style={{ maxWidth:'600px' }}>
+          <div className="modal" style={{ maxWidth:'700px' }}>
             <div className="modal-header">
               <h2>📊 Estadísticas de Pagos</h2>
               <button className="modal-close" onClick={() => setStatsModal(false)}>×</button>
@@ -732,316 +734,180 @@ export default function AdminPage() {
               {(() => {
                 const cat = getCatorcena()
                 const yr = new Date().getFullYear()
+                const catActual = `Cat. ${cat} / ${yr}`
+ 
+                // Filter pagos by selected range
+                const filtered = pagos.filter((r:any) => {
+                  if (statsFilter === 'fecha') {
+                    if (!statsDesde && !statsHasta) return true
+                    const d = new Date(r.created_at)
+                    const desde = statsDesde ? new Date(statsDesde) : null
+                    const hasta = statsHasta ? new Date(statsHasta + 'T23:59:59') : null
+                    if (desde && d < desde) return false
+                    if (hasta && d > hasta) return false
+                    return true
+                  } else {
+                    // Filter by catorcena
+                    if (!statsCat) return true
+                    const [c, y] = statsCat.split('/')
+                    return r.catorcena === parseInt(c.trim()) && r.anio === parseInt(y.trim())
+                  }
+                })
+ 
+                // Group by catorcena
                 const catData: any = {}
-                pagos.forEach((r:any) => {
+                filtered.forEach((r:any) => {
                   const key = `Cat. ${r.catorcena} / ${r.anio}`
-                  if (!catData[key]) catData[key] = { total:0, ops:0, eco:0, rg:0, rc:0 }
-                  catData[key].total += r.monto
+                  if (!catData[key]) catData[key] = { total:0, ops:0, eco:0, rg:0, rc:0, personas: new Set() }
+                  catData[key].total += r.monto || 0
                   catData[key].ops++
                   if (r.tipo === 'eco') catData[key].eco++
                   if (r.tipo === 'rg') catData[key].rg++
                   if (r.tipo?.startsWith('rc')) catData[key].rc++
+                  catData[key].personas.add(r.persona_id)
                 })
-                const totalPagado = pagos.reduce((a:number,r:any) => a + (r.monto||0), 0)
-                const catActual = `Cat. ${cat} / ${yr}`
+ 
+                const totalPagado = filtered.reduce((a:number,r:any) => a + (r.monto||0), 0)
+                const totalPersonas = new Set(filtered.map((r:any) => r.persona_id)).size
+ 
+                // Get unique catorcenas for selector
+                const catOptions = [...new Set(pagos.map((r:any) => `${r.catorcena} / ${r.anio}`))]
+                  .sort((a,b) => {
+                    const [ca,ya] = a.split('/').map(Number)
+                    const [cb,yb] = b.split('/').map(Number)
+                    return yb - ya || cb - ca
+                  })
+ 
                 return (
                   <>
-                    <div style={{ background:'#fff9e6', border:'1.5px solid #FFEE00', borderRadius:'12px',
-                      padding:'10px 16px', marginBottom:'16px', fontSize:'13px', fontWeight:700, color:'#5a4a00' }}>
-                      📅 Catorcena actual: <strong>{catActual}</strong>
+                    {/* Filtros */}
+                    <div style={{ background:'#f4f7ec', borderRadius:'12px', padding:'14px 16px', marginBottom:'16px' }}>
+                      <div style={{ display:'flex', gap:'10px', alignItems:'center', flexWrap:'wrap', marginBottom:'10px' }}>
+                        <span style={{ fontWeight:700, fontSize:'12px', color:'#3d5a09' }}>Filtrar por:</span>
+                        <button onClick={() => setStatsFilter('catorcena')}
+                          style={{ padding:'5px 14px', borderRadius:'20px', border:'none', cursor:'pointer', fontFamily:'var(--font)',
+                            fontWeight:700, fontSize:'12px',
+                            background: statsFilter==='catorcena' ? '#5a8012' : '#e8f0d0',
+                            color: statsFilter==='catorcena' ? '#fff' : '#3d5a09' }}>
+                          Catorcena
+                        </button>
+                        <button onClick={() => setStatsFilter('fecha')}
+                          style={{ padding:'5px 14px', borderRadius:'20px', border:'none', cursor:'pointer', fontFamily:'var(--font)',
+                            fontWeight:700, fontSize:'12px',
+                            background: statsFilter==='fecha' ? '#5a8012' : '#e8f0d0',
+                            color: statsFilter==='fecha' ? '#fff' : '#3d5a09' }}>
+                          Rango de fechas
+                        </button>
+                        <button onClick={() => { setStatsFilter('catorcena'); setStatsCat(''); setStatsDesde(''); setStatsHasta('') }}
+                          style={{ padding:'5px 10px', borderRadius:'20px', border:'1px solid #C8DF8E',
+                            background:'#fff', cursor:'pointer', fontFamily:'var(--font)', fontSize:'11px', color:'#7a8060' }}>
+                          Limpiar
+                        </button>
+                      </div>
+ 
+                      {statsFilter === 'catorcena' ? (
+                        <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+                          <label style={{ fontSize:'12px', fontWeight:600, color:'#3d5a09' }}>Catorcena:</label>
+                          <select value={statsCat} onChange={e => setStatsCat(e.target.value)}
+                            style={{ padding:'6px 10px', border:'1.5px solid #C8DF8E', borderRadius:'8px',
+                              fontSize:'12px', fontFamily:'var(--font)', background:'#fff', color:'#3d5a09' }}>
+                            <option value="">Todas las catorcenas</option>
+                            {catOptions.map(c => (
+                              <option key={c} value={c}>
+                                {c === `${cat} / ${yr}` ? `Cat. ${c} ← actual` : `Cat. ${c}`}
+                              </option>
+                            ))}
+                          </select>
+                          <span style={{ fontSize:'11px', color:'#7a8060' }}>
+                            Catorcena actual: <strong>Cat. {cat} / {yr}</strong>
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+                          <label style={{ fontSize:'12px', fontWeight:600, color:'#3d5a09' }}>Desde:</label>
+                          <input type="date" value={statsDesde} onChange={e => setStatsDesde(e.target.value)}
+                            style={{ padding:'6px 10px', border:'1.5px solid #C8DF8E', borderRadius:'8px',
+                              fontSize:'12px', fontFamily:'var(--font)' }}/>
+                          <label style={{ fontSize:'12px', fontWeight:600, color:'#3d5a09' }}>Hasta:</label>
+                          <input type="date" value={statsHasta} onChange={e => setStatsHasta(e.target.value)}
+                            style={{ padding:'6px 10px', border:'1.5px solid #C8DF8E', borderRadius:'8px',
+                              fontSize:'12px', fontFamily:'var(--font)' }}/>
+                        </div>
+                      )}
                     </div>
-                    <div className="stats-grid">
-                      <div className="stats-box"><div className="val">${totalPagado.toLocaleString()}</div><div className="lbl">Total Pagado</div></div>
-                      <div className="stats-box"><div className="val">{pagos.length}</div><div className="lbl">Operaciones</div></div>
-                      <div className="stats-box"><div className="val">{new Set(pagos.filter((r:any)=>r.tipo==='eco').map((r:any)=>r.persona_id)).size}</div><div className="lbl">Eco Pagados</div></div>
-                      <div className="stats-box"><div className="val">{Object.keys(catData).length}</div><div className="lbl">Catorcenas</div></div>
+ 
+                    {/* Totales */}
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'10px', marginBottom:'16px' }}>
+                      {[
+                        { label:'Total Pagado', val:`$${totalPagado.toLocaleString()}`, color:'#0a5c3e' },
+                        { label:'Operaciones', val:filtered.length, color:'#3d5a09' },
+                        { label:'Personas Pagadas', val:totalPersonas, color:'#185FA5' },
+                        { label:'Catorcenas', val:Object.keys(catData).length, color:'#5a8012' },
+                      ].map(s => (
+                        <div key={s.label} className="stats-box">
+                          <div className="val" style={{ color:s.color }}>{s.val}</div>
+                          <div className="lbl">{s.label}</div>
+                        </div>
+                      ))}
                     </div>
-                    <table className="cat-table" style={{ marginTop:'16px' }}>
-                      <thead>
-                        <tr>
-                          <th>Catorcena</th><th>Eco</th><th>RG</th><th>RC</th><th>Operaciones</th><th>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(catData).length === 0
-                          ? <tr><td colSpan={6} style={{ textAlign:'center', color:'#aaa', padding:'20px' }}>Sin pagos registrados aún</td></tr>
-                          : Object.entries(catData).map(([k,v]:any) => (
-                            <tr key={k} style={{ background: k===catActual ? 'rgba(255,238,0,.1)' : '' }}>
-                              <td>{k} {k===catActual ? '⬅ actual' : ''}</td>
-                              <td>{v.eco}</td><td>{v.rg}</td><td>{v.rc}</td>
-                              <td>{v.ops}</td>
-                              <td style={{ fontWeight:700, color:'#0a5c3e' }}>${v.total.toLocaleString()}</td>
+ 
+                    {/* Tabla por catorcena */}
+                    {Object.keys(catData).length === 0 ? (
+                      <p style={{ textAlign:'center', color:'#aaa', padding:'30px' }}>
+                        Sin pagos en el período seleccionado
+                      </p>
+                    ) : (
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                        <thead>
+                          <tr>
+                            {['Catorcena','Eco','RG','RC','Operaciones','Personas','Total'].map(h=>(
+                              <th key={h} style={{ padding:'9px 10px', background:'linear-gradient(135deg,#eef6d0,#f7fbe8)',
+                                borderBottom:'2px solid #C8DF8E', color:'#3d5a09', fontWeight:700,
+                                fontSize:'10px', textTransform:'uppercase', textAlign:'left' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(catData)
+                            .sort(([a],[b]) => {
+                              const [ca,ya] = a.replace('Cat. ','').split('/').map(Number)
+                              const [cb,yb] = b.replace('Cat. ','').split('/').map(Number)
+                              return yb - ya || cb - ca
+                            })
+                            .map(([k,v]:any) => (
+                            <tr key={k} style={{ borderBottom:'1px solid #eef3e0',
+                              background: k===catActual ? 'rgba(255,238,0,.08)' : '' }}>
+                              <td style={{ padding:'9px 10px', fontWeight:700 }}>
+                                {k} {k===catActual ? <span style={{ fontSize:'10px', color:'#5a8012' }}>← actual</span> : null}
+                              </td>
+                              <td style={{ padding:'9px 10px' }}>{v.eco}</td>
+                              <td style={{ padding:'9px 10px' }}>{v.rg}</td>
+                              <td style={{ padding:'9px 10px' }}>{v.rc}</td>
+                              <td style={{ padding:'9px 10px' }}>{v.ops}</td>
+                              <td style={{ padding:'9px 10px' }}>{v.personas.size}</td>
+                              <td style={{ padding:'9px 10px', fontWeight:700, color:'#0a5c3e' }}>
+                                ${v.total.toLocaleString()}
+                              </td>
                             </tr>
-                          ))
-                        }
-                      </tbody>
-                    </table>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr style={{ background:'#eef6d0' }}>
+                            <td colSpan={4} style={{ padding:'9px 10px', fontWeight:700, fontSize:'11px', color:'#3d5a09' }}>TOTAL</td>
+                            <td style={{ padding:'9px 10px', fontWeight:700 }}>{filtered.length}</td>
+                            <td style={{ padding:'9px 10px', fontWeight:700 }}>{totalPersonas}</td>
+                            <td style={{ padding:'9px 10px', fontWeight:800, color:'#0a5c3e', fontSize:'13px' }}>${totalPagado.toLocaleString()}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    )}
                   </>
                 )
               })()}
             </div>
             <div className="modal-footer">
-              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }} onClick={() => setStatsModal(false)}>Cerrar</button>
-            </div>
-          </div>
-        </div>
-      )}
- 
-      {/* ── MODAL PAGOS ── */}
-      {payModal && (
-        <div className="overlay open">
-          <div className="modal" style={{ maxWidth: '520px' }}>
-            <div className="modal-header">
-              <h2>💳 Detalle de Pago</h2>
-              <button className="modal-close" onClick={() => setPayModal(null)}>×</button>
-            </div>
-            <div className="modal-body">
-              {payModal.simple ? (
-                // Simple pay for RG/RC/Obs
-                <div className="pay-section">
-                  <h4>{payModal.p.rol === 'RG' ? '👤' : payModal.p.rol === 'RC' ? '📋' : '👁️'} {payModal.p.rol} — ${payModal.p.pago_acum || 0}</h4>
-                  <div className="pay-person-row">
-                    <div>
-                      <div className="pay-name">{payModal.p.nombre}
-                        {isPaid(payModal.p.id, 'simple') && <span className="already-paid-badge" style={{ marginLeft: '8px' }}>✓ Pagado Cat.{payModal.cat}</span>}
-                      </div>
-                      <div className="pay-account">{payModal.p.banco || 'Sin banco'}{payModal.p.cuenta ? ' · ' + payModal.p.cuenta : ''}</div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <strong style={{ color: '#0a5c3e' }}>${payModal.p.pago_acum || 0}</strong>
-                      <button className={`btn-pay-action${isPaid(payModal.p.id, 'simple') ? ' paid' : ''}`}
-                        onClick={() => doRegisterPay(payModal.p.id, 'simple', payModal.p.pago_acum || 0)}>
-                        {isPaid(payModal.p.id, 'simple') ? '✓ Pagado' : '💳 Pagar'}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="pay-total">
-                    <span>Total (Cat. {payModal.cat}/{payModal.yr})</span>
-                    <span>${payModal.p.pago_acum || 0}</span>
-                  </div>
-                </div>
-              ) : (
-                // Full ecoperador pay
-                <>
-                  <div className="pay-section">
-                    <h4>🌱 Ecoperador — ${payModal.ecoTotal} ({payModal.hasRG ? '$100 por RG + ' : ''}$50 × {payModal.myRcs.length} RC)</h4>
-                    <div className="pay-person-row">
-                      <div>
-                        <div className="pay-name">{payModal.p.nombre}
-                          {isPaid(payModal.p.id, 'eco') && <span className="already-paid-badge" style={{ marginLeft: '8px' }}>✓ Pagado Cat.{payModal.cat}</span>}
-                        </div>
-                        <div className="pay-account">{payModal.p.banco || 'Sin banco'}{payModal.p.cuenta ? ' · Cuenta: ' + payModal.p.cuenta : ''}</div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <strong style={{ color: '#0a5c3e' }}>${payModal.ecoTotal}</strong>
-                        <button className={`btn-pay-action${isPaid(payModal.p.id, 'eco') ? ' paid' : ''}`}
-                          onClick={() => doRegisterPay(payModal.p.id, 'eco', payModal.ecoTotal)}>
-                          {isPaid(payModal.p.id, 'eco') ? '✓ Pagado' : '💳 Pagar'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
- 
-                  {payModal.hasRG && (
-                    <div className="pay-section" style={{ marginTop: '10px' }}>
-                      <h4>👤 RG — ${payModal.rgTotal} ($300 base + $50 × {payModal.myRcs.length} RC)</h4>
-                      <div className="pay-person-row">
-                        <div>
-                          <div className="pay-name">{payModal.eco?.rg_nombre || '(sin nombre)'}
-                            {isPaid(payModal.p.id, 'rg') && <span className="already-paid-badge" style={{ marginLeft: '8px' }}>✓ Pagado</span>}
-                          </div>
-                          <div className="pay-account">{payModal.eco?.rg_banco || 'Sin banco'}{payModal.eco?.rg_cuenta ? ' · Cuenta: ' + payModal.eco.rg_cuenta : ''}</div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <strong style={{ color: '#185FA5' }}>${payModal.rgTotal}</strong>
-                          <button className={`btn-pay-action${isPaid(payModal.p.id, 'rg') ? ' paid' : ''}`}
-                            style={{ background: isPaid(payModal.p.id, 'rg') ? '' : '#185FA5' }}
-                            onClick={() => doRegisterPay(payModal.p.id, 'rg', payModal.rgTotal)}>
-                            {isPaid(payModal.p.id, 'rg') ? '✓ Pagado' : '💳 Pagar RG'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
- 
-                  {payModal.myRcs.length > 0 && (
-                    <div className="pay-section" style={{ marginTop: '10px' }}>
-                      <h4>📋 RCs — $200 c/u</h4>
-                      {payModal.myRcs.map((rc: any) => (
-                        <div key={rc.id} className="pay-person-row">
-                          <div>
-                            <div className="pay-name">RC {rc.slot}: {rc.nombre || '(sin nombre)'}
-                              {isPaid(payModal.p.id, 'rc_' + rc.slot) && <span className="already-paid-badge" style={{ marginLeft: '8px' }}>✓ Pagado</span>}
-                            </div>
-                            <div className="pay-account">{rc.banco || 'Sin banco'}{rc.cuenta ? ' · Cuenta: ' + rc.cuenta : ''}</div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <strong style={{ color: '#5a8012' }}>$200</strong>
-                            <button className={`btn-pay-action${isPaid(payModal.p.id, 'rc_' + rc.slot) ? ' paid' : ''}`}
-                              style={{ background: isPaid(payModal.p.id, 'rc_' + rc.slot) ? '' : '#5a8012' }}
-                              onClick={() => doRegisterPay(payModal.p.id, 'rc_' + rc.slot, 200)}>
-                              {isPaid(payModal.p.id, 'rc_' + rc.slot) ? '✓ Pagado' : '💳 Pagar RC'}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
- 
-                  <div className="pay-total">
-                    <span>Total a distribuir (Cat. {payModal.cat}/{payModal.yr})</span>
-                    <span>${payModal.ecoTotal + payModal.rgTotal + payModal.myRcs.length * 200}</span>
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button className="btn" style={{ background: '#F2F4EE', border: '1px solid #D4D8C8' }} onClick={() => setPayModal(null)}>Cerrar</button>
-            </div>
-          </div>
-        </div>
-      )}
- 
-      {/* ── MODAL CREDENCIAL ── */}
-      {credModal && (
-        <div className="overlay open">
-          <div className="modal" style={{ maxWidth:'560px' }}>
-            <div className="modal-header">
-              <h2>🖨️ Credencial — {credModal.nombre}</h2>
-              <button className="modal-close" onClick={() => setCredModal(null)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'16px' }}>
-                {[
-                  ['foto','Foto'],['nombre','Nombre'],['rol','Rol'],['celular','Celular'],
-                  ['municipio','Municipio'],['distrito','Distrito'],['folio','Folio'],
-                  ['casilla','Sección/Casilla'],['banco','Banco'],['cuenta','Cuenta'],['status','Status'],
-                ].map(([k,label]) => (
-                  <label key={k} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'7px 10px',
-                    border:'1px solid rgba(143,191,37,.3)', borderRadius:'9px', cursor:'pointer',
-                    background: credFields[k] ? '#eef6d0' : '#fff', transition:'all .12s' }}>
-                    <input type="checkbox" checked={!!credFields[k]}
-                      onChange={e => setCredFields(prev => ({...prev, [k]: e.target.checked}))}
-                      style={{ width:'14px', height:'14px', accentColor:'#00B15A' }}/>
-                    <span style={{ fontSize:'13px', fontWeight:600, color:'#3d5a09' }}>{label}</span>
-                  </label>
-                ))}
-              </div>
- 
-              {/* Preview credencial — formato Zebra ZC300 (85.6mm × 54mm) */}
-              <div style={{ marginBottom:'12px' }}>
-                <p style={{ fontSize:'11px', color:'#7a8060', marginBottom:'8px', fontWeight:600 }}>
-                  Vista previa — Zebra ZC300 (85.6 × 54 mm)
-                </p>
-                <div id="cred-preview" style={{
-                  width:'323px', height:'204px',
-                  background:'linear-gradient(135deg,#f8fef0 0%,#eef6d0 100%)',
-                  border:'2px solid #C8DF8E', borderRadius:'12px',
-                  padding:'14px', display:'flex', gap:'12px', alignItems:'flex-start',
-                  position:'relative', overflow:'hidden', margin:'0 auto',
-                  fontFamily:"'Segoe UI',sans-serif",
-                }}>
-                  {/* Accent bar */}
-                  <div style={{ position:'absolute', top:0, left:0, right:0, height:'5px',
-                    background:'linear-gradient(90deg,#3d5a09,#00B15A)' }}/>
-                  {/* Logo corner */}
-                  <div style={{ position:'absolute', top:'10px', right:'10px',
-                    width:'28px', height:'28px', borderRadius:'50%',
-                    background:'linear-gradient(135deg,#5a8012,#00B15A)',
-                    display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <span style={{ color:'#fff', fontSize:'14px', fontWeight:900 }}>V</span>
-                  </div>
- 
-                  {/* Foto */}
-                  {credFields['foto'] && (
-                    <div style={{ flexShrink:0 }}>
-                      {credModal.foto
-                        ? <img src={credModal.foto} style={{ width:'64px', height:'80px',
-                            objectFit:'cover', borderRadius:'8px', border:'2px solid #C8DF8E', marginTop:'6px' }}/>
-                        : <div style={{ width:'64px', height:'80px', borderRadius:'8px',
-                            background:'linear-gradient(135deg,#eef6d0,rgba(0,177,90,.15))',
-                            border:'2px dashed #C8DF8E', display:'flex', alignItems:'center',
-                            justifyContent:'center', fontSize:'22px', marginTop:'6px' }}>👤</div>}
-                    </div>
-                  )}
- 
-                  {/* Datos */}
-                  <div style={{ flex:1, marginTop:'8px' }}>
-                    {credFields['nombre'] && (
-                      <div style={{ fontSize:'14px', fontWeight:800, color:'#2e4a08', marginBottom:'2px',
-                        lineHeight:1.2 }}>{credModal.nombre}</div>
-                    )}
-                    {credFields['rol'] && (
-                      <div style={{ fontSize:'10px', fontWeight:700, color:'#fff',
-                        background:'linear-gradient(135deg,#5a8012,#00B15A)',
-                        display:'inline-block', padding:'2px 8px', borderRadius:'10px', marginBottom:'6px' }}>
-                        {credModal.rol}
-                      </div>
-                    )}
-                    <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
-                      {credFields['celular'] && credModal.celular && (
-                        <div style={{ fontSize:'10px', color:'#4a5030' }}>📱 {credModal.celular}</div>
-                      )}
-                      {credFields['municipio'] && credModal.municipio && (
-                        <div style={{ fontSize:'10px', color:'#4a5030' }}>📍 {credModal.municipio}</div>
-                      )}
-                      {credFields['distrito'] && credModal.distrito && (
-                        <div style={{ fontSize:'10px', color:'#4a5030' }}>🗳️ Dist. {credModal.distrito}</div>
-                      )}
-                      {credFields['folio'] && credModal.folio && (
-                        <div style={{ fontSize:'10px', color:'#4a5030' }}>📄 Folio: {credModal.folio}</div>
-                      )}
-                      {credFields['casilla'] && credModal.casilla && (
-                        <div style={{ fontSize:'10px', color:'#4a5030' }}>🏛️ Secc. {credModal.casilla}</div>
-                      )}
-                      {credFields['banco'] && credModal.banco && (
-                        <div style={{ fontSize:'10px', color:'#4a5030' }}>🏦 {credModal.banco}</div>
-                      )}
-                      {credFields['cuenta'] && credModal.cuenta && (
-                        <div style={{ fontSize:'10px', color:'#4a5030' }}>💳 {credModal.cuenta}</div>
-                      )}
-                      {credFields['status'] && credModal.status?.length > 0 && (
-                        <div style={{ fontSize:'10px', color:'#4a5030' }}>
-                          {(credModal.status as string[]).join(' · ')}
-                        </div>
-                      )}
-                    </div>
-                  </div>
- 
-                  {/* Footer */}
-                  <div style={{ position:'absolute', bottom:'6px', left:'14px', right:'14px',
-                    borderTop:'1px solid rgba(143,191,37,.3)', paddingTop:'4px',
-                    display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <span style={{ fontSize:'8px', color:'#8FBF25', fontWeight:700 }}>ECOSABANA Sonora 2027</span>
-                    <span style={{ fontSize:'8px', color:'#8FBF25', fontWeight:700 }}>PVEM</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
               <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }}
-                onClick={() => setCredModal(null)}>Cerrar</button>
-              <button className="btn" style={{ background:'#1a73c8', color:'#fff', fontWeight:700 }}
-                onClick={() => {
-                  const preview = document.getElementById('cred-preview')
-                  if (!preview) return
-                  const w = window.open('', '_blank', 'width=400,height=300')
-                  if (!w) return
-                  w.document.write(`<!DOCTYPE html><html><head>
-                    <title>Credencial — ${credModal.nombre}</title>
-                    <style>
-                      @page { size: 85.6mm 54mm; margin: 0; }
-                      body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                      .card { width: 85.6mm; height: 54mm; }
-                    </style>
-                  </head><body>
-                    <div class="card">${preview.outerHTML}</div>
-                    <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script>
-                  </body></html>`)
-                  w.document.close()
-                }}>
-                🖨️ Imprimir / Descargar
-              </button>
+                onClick={() => setStatsModal(false)}>Cerrar</button>
             </div>
           </div>
         </div>
