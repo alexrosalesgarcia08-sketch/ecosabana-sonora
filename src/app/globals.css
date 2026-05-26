@@ -7,23 +7,22 @@
    Negro              #020000  (Pantone Black C  C40 M40 Y40 K100)
    ───────────────────────────────────────────────────────────── */
 :root{
-  --pvem-dark:   #5a8012;   /* oscurecido de 8FBF25 para texto/headers */
-  --pvem-main:   #8FBF25;   /* verde logo principal */
-  --pvem-mid:    #00B15A;   /* verde hoja baja */
-  --pvem-light:  #C8DF8E;   /* verde hoja alta / acentos suaves */
-  --pvem-xlight: #eef6d0;   /* fondo muy suave */
-  --pvem-red:    #EF4135;   /* rojo tucán - peligro/eliminar */
-  --pvem-yellow: #FFEE00;   /* amarillo – detalles decorativos */
-  --pvem-black:  #1a1a18;
-  --gr50:#F8F9FA;--gr100:#F2F4EE;--gr200:#D4D8C8;--gr400:#7a8060;--gr600:#4a5030;--gr800:#1a1a18;
-  --font:'Segoe UI',system-ui,sans-serif;
+  --pvem-dark:   #2d5800;
+  --pvem-main:   #6ab800;
+  --pvem-mid:    #00c060;
+  --pvem-light:  #a8d840;
+  --pvem-xlight: #daf0a0;
+  --pvem-red:    #e8192c;
+  --pvem-yellow: #ffe000;
+  --pvem-black:  #1a2a00;
+  --font: 'Nunito', 'Segoe UI', Arial, sans-serif;
 }
  
 /* ── Reset & base ────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
   font-family:var(--font);
-  background:#f4f7ec;
+  background:#edf7d8;
   color:var(--pvem-black);
   min-height:100vh;
   margin:0;
@@ -270,7 +269,7 @@ input:focus,select.form-select:focus{outline:none;border-color:var(--pvem-main);
 @media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr);}.form-grid{grid-template-columns:1fr;}.sub-grid{grid-template-columns:1fr;}}
  
 /* ══ PANEL USUARIO ═══════════════════════════════════════════ */
-#userAddPanel{min-height:100vh;background:#f4f7ec;font-family:var(--font);}
+#userAddPanel{min-height:100vh;background:#edf7d8;font-family:var(--font);}
 #uHeader{
   background:linear-gradient(135deg,#3d5a09 0%,#5a8012 45%,#00B15A 100%);
   padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
@@ -572,3 +571,64 @@ body {
   width: 100%;
 }
  
+/* === VIVID COLOR OVERRIDES === */
+.header {
+  background: linear-gradient(135deg, #2a5200 0%, #4a8800 45%, #00b854 100%) !important;
+}
+.stat-card {
+  border: 1.5px solid rgba(80,170,0,.25) !important;
+}
+.stat-value {
+  color: #2a7000 !important;
+  font-weight: 900 !important;
+}
+.badge-eco {
+  background: #b8f040 !important;
+  color: #1a4000 !important;
+}
+.badge-rg {
+  background: #60b0ff !important;
+  color: #001a40 !important;
+}
+.badge-rc {
+  background: #40d080 !important;
+  color: #001a20 !important;
+}
+.badge-obs {
+  background: #ffb830 !important;
+  color: #2a1a00 !important;
+}
+.badge-val {
+  background: #40d080 !important;
+  color: #001a20 !important;
+}
+.badge-pend {
+  background: #ffb830 !important;
+  color: #2a1a00 !important;
+}
+.badge-cred {
+  background: #60b0ff !important;
+  color: #001a40 !important;
+}
+.badge-loc {
+  background: #ff8040 !important;
+  color: #fff !important;
+}
+.btn-green, .btn.btn-green {
+  background: linear-gradient(135deg, #3a7800, #00b854) !important;
+  box-shadow: 0 4px 16px rgba(0,180,80,.4) !important;
+}
+.btn-ingresar {
+  background: linear-gradient(135deg, #3a7800, #00c45e) !important;
+  box-shadow: 0 6px 24px rgba(0,180,80,.5) !important;
+}
+.stat-icon svg {
+  color: #5ab800 !important;
+}
+#adminApp, #userAddPanel {
+  background: #eaf4d0 !important;
+}
+.section-title {
+  color: #2a6000 !important;
+  border-left-color: #6db800 !important;
+}
