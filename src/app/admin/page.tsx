@@ -309,9 +309,9 @@ export default function AdminPage() {
             }
             if (!nombre) continue
  
-            // Check duplicate by nombre
+            // Check duplicate by nombre - exact match only
             const { data: existNom } = await supabase.from('personas')
-              .select('id,nombre').ilike('nombre', nombre).limit(1)
+              .select('id,nombre').eq('nombre', nombre).limit(1)
             if (existNom && existNom.length > 0) {
               dupes++
               dupList.push(nombre)
