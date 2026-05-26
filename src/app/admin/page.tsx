@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { initials, badgeClass, statusBadgeClass, getCatorcena, getWeekNum, RC_LABELS, MASCOT_SRC } from '@/lib/constants'
 import * as XLSX from 'xlsx'
- 
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
- 
+
 export default function AdminPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -23,7 +23,7 @@ export default function AdminPage() {
   const [filterMun, setFilterMun] = useState('')
   const [stats, setStats] = useState({ eco: 0, rg: 0, rc: 0, obs: 0, total: 0, casillas: 0 })
   const [userName, setUserName] = useState('Admin')
- 
+
   // Modal states
   const [payModal, setPayModal] = useState<any>(null)
   const [statsModal, setStatsModal] = useState(false)
@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [credModal, setCredModal] = useState<any>(null)
   const [credFields, setCredFields] = useState<Record<string,boolean>>({ foto:true, nombre:true, celular:true, rol:true, municipio:true, folio:false, casilla:false, banco:false, cuenta:false, distrito:false, status:true })
   const importRef = useRef<HTMLInputElement>(null)
- 
+
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { window.location.href = '/'; return }
@@ -52,7 +52,7 @@ export default function AdminPage() {
       loadAll()
     })
   }, [])
- 
+
   async function loadAll() {
     const [
       { data: p }, { data: e }, { data: r }, { data: o }, { data: pg },
@@ -70,7 +70,7 @@ export default function AdminPage() {
     setFormatos1x20(fmts ?? [])
     setNotifs(notifsData ?? [])
     setPersonas(ps); setEcos(es); setRcsData(rs); setObsData(os); setPagos(pgs)
- 
+
     const ecoCount = ps.filter((x:any) => x.rol === 'Ecoperador').length
     const rgS = ps.filter((x:any) => x.rol === 'RG').length
     const rgE = es.filter((e:any) => e.rg_nombre || e.rg_tel).length
@@ -84,21 +84,21 @@ export default function AdminPage() {
     })
     setLoading(false)
   }
- 
+
   async function handleDelete(id: string, nombre: string) {
     setConfirmId(id); setConfirmName(nombre)
   }
- 
+
   async function confirmDelete() {
     if (!confirmId) return
     await supabase.from('personas').delete().eq('id', confirmId)
     setConfirmId(null); loadAll()
   }
- 
+
   async function handleLogout() {
     await supabase.auth.signOut(); window.location.href = '/'
   }
- 
+
   // ── PAGOS ──────────────────────────────────────────────────
   function openPay(p: any) {
     const eco = ecos.find(e => e.id === p.id)
@@ -107,15 +107,15 @@ export default function AdminPage() {
     const ecoTotal = (hasRG ? 100 : 0) + myRcs.length * 50
     const rgTotal = hasRG ? 300 + myRcs.length * 50 : 0
     const cat = getCatorcena(); const yr = new Date().getFullYear()
- 
+
     setPayModal({ p, eco, myRcs, hasRG, ecoTotal, rgTotal, cat, yr })
   }
- 
+
   function openSimplePay(p: any) {
     const cat = getCatorcena(); const yr = new Date().getFullYear()
     setPayModal({ p, simple: true, cat, yr })
   }
- 
+
   async function doRegisterPay(personaId: string, tipo: string, monto: number) {
     if (monto <= 0) return
     const cat = getCatorcena(); const yr = new Date().getFullYear()
@@ -126,12 +126,12 @@ export default function AdminPage() {
     setPayModal(null); loadAll()
     alert(`✅ Pago de $${monto} registrado — Catorcena ${cat}/${yr}`)
   }
- 
+
   function isPaid(personaId: string, tipo: string) {
     const cat = getCatorcena(); const yr = new Date().getFullYear()
     return pagos.some(r => r.persona_id === personaId && r.tipo === tipo && r.catorcena === cat && r.anio === yr)
   }
- 
+
   // ── EXPORT 1x20 ────────────────────────────────────────────
   function export1x20() {
     const ecos = personas.filter((p:any) => p.rol === 'Ecoperador')
@@ -172,12 +172,12 @@ export default function AdminPage() {
     })
     XLSX.writeFile(wb, `1x20_ECOSABANA_${new Date().toLocaleDateString('es-MX').replace(/\//g,'-')}.xlsx`)
   }
- 
+
   // ── EXCEL EXPORT ───────────────────────────────────────────
   function exportExcel() {
     if (!personas.length) { alert('No hay datos'); return }
     const wb = XLSX.utils.book_new()
- 
+
     // Sheet 1: All personas
     const rows = personas.map(p => {
       const eco = ecos.find(e => e.id === p.id)
@@ -192,17 +192,17 @@ export default function AdminPage() {
       }
     })
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'PERSONAS')
- 
+
     // Sheet 2: RCs
     const rcRows = rcsData.map(r => {
       const eco = personas.find(p => p.id === r.eco_id)
       return { 'Ecoperador': eco?.nombre || '', 'Slot': r.slot, 'Nombre': r.nombre, 'Tel': r.tel, 'Banco': r.banco, 'Cuenta': r.cuenta }
     })
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rcRows.length ? rcRows : [{}]), 'RCS')
- 
+
     XLSX.writeFile(wb, `ECOSABANA_${new Date().toLocaleDateString('es-MX').replace(/\//g,'-')}.xlsx`)
   }
- 
+
   // ── EXCEL IMPORT ───────────────────────────────────────────
   async function importExcel(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
@@ -210,11 +210,10 @@ export default function AdminPage() {
     reader.onload = async (ev) => {
       try {
         const wb = XLSX.read(ev.target?.result, { type: 'array' })
- 
-        // ── Normalize helpers ──────────────────────────────────
-        function normMunicipio(raw: string): string {
-          const m = raw?.toString().trim().toUpperCase()
-            .normalize('NFD').replace(/[̀-ͯ]/g,'') || ''
+        const { data: { user } } = await supabase.auth.getUser()
+
+        function normMun(raw: string): string {
+          const m = (raw||'').toString().trim().toUpperCase()
           const map: Record<string,string> = {
             'CAJE':'Cajeme','CAJEME':'Cajeme','CSJEME':'Cajeme',
             'HERMOSILLO':'Hermosillo','NAVOJOA':'Navojoa','GUAYMAS':'Guaymas',
@@ -224,35 +223,31 @@ export default function AdminPage() {
             'SAN IGNACIO RIO MUERTO':'San Ignacio Rio Muerto',
             'ALAMOS':'Alamos','ALTAR':'Altar',
           }
-          return map[m] || raw?.toString().trim() || ''
+          const norm = m.normalize('NFD').replace(/[̀-ͯ]/g,'')
+          return map[norm] || map[m] || (raw||'').toString().trim()
         }
- 
+
         function normBanco(raw: string): string {
-          const b = raw?.toString().trim().toUpperCase()
-            .normalize('NFD').replace(/[̀-ͯ]/g,'') || ''
+          const b = (raw||'').toString().trim().toUpperCase()
           if (b.includes('BBVA')||b.includes('BANCOMER')) return 'BBVA'
           if (b.includes('BANAMEX')||b.includes('CITIBANAMEX')||b.includes('NACIONAL DE MEXICO')||b.includes('CITIBANK')) return 'Citibanamex'
           if (b.includes('SANTANDER')) return 'Santander'
           if (b.includes('BANORTE')) return 'Banorte'
           if (b.includes('HSBC')) return 'HSBC'
           if (b.includes('SCOTIABANK')) return 'Scotiabank'
-          if (b.includes('INBURSA')) return 'Inbursa'
           if (b.includes('AZTECA')) return 'Azteca'
           if (b.includes('COPPEL')||b.includes('BANCOPPEL')) return 'Coppel'
-          if (b.includes('BAJIO')||b.includes('BAJÍO')) return 'Banbajio'
+          if (b.includes('BAJIO')||b.includes('BAJIO')) return 'Banbajio'
           if (b.includes('SPIN')||b.includes('OXXO')) return 'SPIN by OXXO'
           if (b.includes('HEY')) return 'Hey Banco'
-          if (b.includes('NU ')||b===('NU')||b.includes('NUBANK')) return 'Hey Banco'
+          if (b.includes('NU ') || b==='NU') return 'Hey Banco'
           if (b.includes('AFIRME')) return 'Afirme'
-          if (b.includes('BANSI')||b.includes('BANSÍ')) return 'Otro'
-          return raw?.toString().trim() || ''
+          return (raw||'').toString().trim()
         }
- 
-        function normDistrito(raw: any): number | null {
+
+        function normDist(raw: any): number | null {
           if (!raw) return null
-          const str = raw.toString().trim().toUpperCase()
-            .normalize('NFD').replace(/[̀-ͯ]/g,'')
-          // Roman to number
+          const str = (raw||'').toString().trim().toUpperCase()
           const roman: Record<string,number> = {
             'I':1,'II':2,'III':3,'IV':4,'V':5,'VI':6,'VII':7,'VIII':8,
             'IX':9,'X':10,'XI':11,'XII':12,'XIII':13,'XIV':14,'XV':15,
@@ -262,30 +257,33 @@ export default function AdminPage() {
           const n = parseInt(str)
           return isNaN(n) ? null : n
         }
- 
-        // ── Process sheets ──────────────────────────────────────
-        const { data: { user } } = await supabase.auth.getUser()
-        let imported = 0, skipped = 0, dupes = 0
+
+        // ── Step 1: Load ALL existing names and claves at once ──
+        const { data: existingAll } = await supabase.from('personas').select('nombre,clave_elector')
+        const existingNames = new Set((existingAll||[]).map((p:any) => p.nombre?.toUpperCase().trim()))
+        const existingClaves = new Set((existingAll||[]).map((p:any) => p.clave_elector?.toUpperCase().trim()).filter(Boolean))
+
+        // ── Step 2: Parse all rows ──────────────────────────────
+        const toInsert: any[] = []
         const dupList: string[] = []
- 
+        let skipped = 0
+
         for (const sheetName of wb.SheetNames) {
           const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header:1, defval:'' }) as any[][]
           if (rows.length < 2) continue
-          const hdr = rows[0].map((h:any) => String(h).trim().toUpperCase()
-            .normalize('NFD').replace(/[̀-ͯ]/g,''))
- 
-          // Detect column format
+          const hdr = rows[0].map((h:any) => (h||'').toString().trim().toUpperCase())
+
           const isRGFormat = hdr.some(h => h.includes('APELLIDO PATERNO'))
+          const iApPat = hdr.findIndex(h=>h.includes('APELLIDO PATERNO'))
+          const iApMat = hdr.findIndex(h=>h.includes('APELLIDO MATERNO'))
+          const iNomP = hdr.findIndex(h=>h.includes('NOMBRE (ES)')||h.includes('NOMBRE(ES)')||h==='NOMBRE')
           const iNomCol = isRGFormat ? -1 : hdr.findIndex(h=>h.includes('NOMBRE'))
-          const iApPat = isRGFormat ? hdr.findIndex(h=>h.includes('APELLIDO PATERNO')) : -1
-          const iApMat = isRGFormat ? hdr.findIndex(h=>h.includes('APELLIDO MATERNO')) : -1
-          const iNomPart = isRGFormat ? hdr.findIndex(h=>h.includes('NOMBRE (ES)')||h.includes('NOMBRE(ES)')||h==='NOMBRE') : -1
           const iTel = hdr.findIndex(h=>h.includes('TELEFONO')||h.includes('CELULAR'))
           const iCalle = hdr.findIndex(h=>h==='CALLE')
           const iNumExt = hdr.findIndex(h=>h.includes('NUMERO EXTERIOR')||h.includes('NUM EXT'))
           const iColonia = hdr.findIndex(h=>h==='COLONIA')
           const iCP = hdr.findIndex(h=>h.includes('CODIGO POSTAL')||h==='CP')
-          const iSeccion = hdr.findIndex(h=>h.includes('SECCION')||h.includes('SECCIÓN'))
+          const iSeccion = hdr.findIndex(h=>h.includes('SECCION')||h.includes('SECCION'))
           const iClave = hdr.findIndex(h=>h.includes('CLAVE DE ELECTOR')||h.includes('CLAVE ELECTOR'))
           const iMun = hdr.findIndex(h=>h.includes('MUNICIPIO'))
           const iDistL = hdr.findIndex(h=>h.includes('DISTRITO LOCAL'))
@@ -293,99 +291,87 @@ export default function AdminPage() {
           const iBanco = hdr.findIndex(h=>h.includes('BANCO'))
           const iCuenta = hdr.findIndex(h=>h.includes('TARJETA')||h.includes('CUENTA')||h.includes('NUMERO DE CUENTA'))
           const iNotas = hdr.findIndex(h=>h==='NOTAS')
-          const iEco = hdr.findIndex(h=>h.includes('ECOPERADOR'))
           const iFecha = hdr.findIndex(h=>h.includes('MARCA TEMPORAL')||h.includes('FECHA'))
- 
+
           for (const row of rows.slice(1)) {
-            // Build nombre
             let nombre = ''
             if (isRGFormat) {
-              const apPat = String(row[iApPat]||'').trim()
-              const apMat = String(row[iApMat]||'').trim()
-              const nomP = String(row[iNomPart]||'').trim()
-              nombre = `${apPat} ${apMat} ${nomP}`.trim().replace(/\s+/g,' ').toUpperCase()
+              const a1 = (row[iApPat]||'').toString().trim()
+              const a2 = (row[iApMat]||'').toString().trim()
+              const n1 = (row[iNomP]||'').toString().trim()
+              nombre = `${a1} ${a2} ${n1}`.trim().replace(/\s+/g,' ').toUpperCase()
             } else {
-              nombre = String(row[iNomCol]||'').trim().toUpperCase()
+              nombre = (row[iNomCol]||'').toString().trim().toUpperCase()
             }
             if (!nombre) continue
- 
-            // Check duplicate by nombre - exact match only
-            const { data: existNom } = await supabase.from('personas')
-              .select('id,nombre').eq('nombre', nombre).limit(1)
-            if (existNom && existNom.length > 0) {
-              dupes++
+
+            // Check dupe in memory (fast)
+            const nombreNorm = nombre.toUpperCase().trim()
+            if (existingNames.has(nombreNorm)) {
               dupList.push(nombre)
               continue
             }
- 
-            // Check duplicate by clave
-            const clave = iClave > -1 ? String(row[iClave]||'').trim().toUpperCase() : ''
-            if (clave) {
-              const { data: existClave } = await supabase.from('personas')
-                .select('id').eq('clave_elector', clave).limit(1)
-              if (existClave && existClave.length > 0) {
-                dupes++
-                dupList.push(`${nombre} (clave duplicada)`)
-                continue
-              }
+
+            const clave = iClave > -1 ? (row[iClave]||'').toString().trim().toUpperCase() : ''
+            if (clave && existingClaves.has(clave)) {
+              dupList.push(`${nombre} (clave duplicada)`)
+              continue
             }
- 
-            const banco = iBanco > -1 ? normBanco(String(row[iBanco]||'')) : ''
-            const municipio = iMun > -1 ? normMunicipio(String(row[iMun]||'')) : ''
-            const distLocal = iDistL > -1 ? normDistrito(row[iDistL]) : null
-            const distFed = iDistF > -1 ? normDistrito(row[iDistF]) : null
- 
-            // Parse fecha
+
             let fechaReg = new Date().toISOString().split('T')[0]
             if (iFecha > -1 && row[iFecha]) {
               try {
-                const fd = new Date(String(row[iFecha]))
+                const fd = new Date((row[iFecha]||'').toString())
                 if (!isNaN(fd.getTime())) fechaReg = fd.toISOString().split('T')[0]
               } catch {}
             }
- 
-            const { error } = await supabase.from('personas').insert({
+
+            const record = {
               nombre,
-              celular: iTel > -1 ? String(row[iTel]||'').replace(/\D/g,'').slice(0,10) : '',
-              municipio,
-              banco,
-              cuenta: iCuenta > -1 ? String(row[iCuenta]||'').replace(/\s/g,'') : '',
+              celular: iTel > -1 ? (row[iTel]||'').toString().replace(/\D/g,'').slice(0,10) : '',
+              municipio: iMun > -1 ? normMun((row[iMun]||'').toString()) : '',
+              banco: iBanco > -1 ? normBanco((row[iBanco]||'').toString()) : '',
+              cuenta: iCuenta > -1 ? (row[iCuenta]||'').toString().replace(/\s/g,'') : '',
               clave_elector: clave,
-              calle: iCalle > -1 ? String(row[iCalle]||'').trim() : '',
-              numero_ext: iNumExt > -1 ? String(row[iNumExt]||'').trim() : '',
-              colonia: iColonia > -1 ? String(row[iColonia]||'').trim() : '',
-              cp: iCP > -1 ? String(row[iCP]||'').trim() : '',
-              seccion: iSeccion > -1 ? String(row[iSeccion]||'').trim() : '',
-              distrito_local: distLocal,
-              distrito_federal: distFed,
-              notas: iNotas > -1 ? String(row[iNotas]||'').trim() : '',
+              calle: iCalle > -1 ? (row[iCalle]||'').toString().trim() : '',
+              numero_ext: iNumExt > -1 ? (row[iNumExt]||'').toString().trim() : '',
+              colonia: iColonia > -1 ? (row[iColonia]||'').toString().trim() : '',
+              cp: iCP > -1 ? (row[iCP]||'').toString().trim() : '',
+              seccion: iSeccion > -1 ? (row[iSeccion]||'').toString().trim() : '',
+              distrito_local: iDistL > -1 ? normDist(row[iDistL]) : null,
+              distrito_federal: iDistF > -1 ? normDist(row[iDistF]) : null,
+              notas: iNotas > -1 ? (row[iNotas]||'').toString().trim() : '',
               rol: 'RG',
               status: [],
               pago_acum: 300,
               fecha_registro: fechaReg,
               creado_por: user?.id,
-            })
- 
-            if (error) {
-              console.error('Import error:', error.message, nombre)
-              skipped++
-            } else {
-              imported++
-              // If has eco name, save as ecoperador link note
-              if (iEco > -1 && row[iEco]) {
-                const ecoNombre = String(row[iEco]).trim().toUpperCase()
-                // Try to find eco in DB
-                const { data: ecoP } = await supabase.from('personas')
-                  .select('id').ilike('nombre', `%${ecoNombre.split(' ')[0]}%`).limit(1)
-              }
             }
+
+            toInsert.push(record)
+            existingNames.add(nombreNorm)
+            if (clave) existingClaves.add(clave)
           }
         }
- 
-        let msg = `✅ Importación completada:\n\n• Importados: ${imported}\n• Duplicados omitidos: ${dupes}\n• Errores: ${skipped}`
+
+        // ── Step 3: Batch insert in chunks of 50 ───────────────
+        let imported = 0
+        const chunkSize = 50
+        for (let i = 0; i < toInsert.length; i += chunkSize) {
+          const chunk = toInsert.slice(i, i + chunkSize)
+          const { error } = await supabase.from('personas').insert(chunk)
+          if (error) {
+            console.error('Batch error:', error.message)
+            skipped += chunk.length
+          } else {
+            imported += chunk.length
+          }
+        }
+
+        let msg = `✅ Importación completada:\n\n• Importados: ${imported}\n• Duplicados omitidos: ${dupList.length}\n• Errores: ${skipped}`
         if (dupList.length > 0) {
-          msg += `\n\nDuplicados encontrados (${dupList.length}):\n` + dupList.slice(0,10).map(d=>`• ${d}`).join('\n')
-          if (dupList.length > 10) msg += `\n...y ${dupList.length-10} más`
+          msg += `\n\nDuplicados (${dupList.length}):\n` + dupList.slice(0,8).map(d=>`• ${d}`).join('\n')
+          if (dupList.length > 8) msg += `\n...y ${dupList.length-8} más`
         }
         alert(msg)
         loadAll()
@@ -396,15 +382,15 @@ export default function AdminPage() {
     reader.readAsArrayBuffer(file)
     e.target.value = ''
   }
- 
+
     const filtered = personas.filter(p =>
     (!search || p.nombre?.toLowerCase().includes(search.toLowerCase()) || p.celular?.includes(search)) &&
     (!filterRol || p.rol === filterRol) &&
     (!filterMun || p.municipio === filterMun)
   )
- 
+
   const municipios = [...new Set(personas.map((p:any) => p.municipio).filter(Boolean))] as string[]
- 
+
   const statsCards = [
     { label: 'TOTAL', value: stats.total },
     { label: 'ECOPERADORES', value: stats.eco },
@@ -413,16 +399,16 @@ export default function AdminPage() {
     { label: 'OBSERVADORES', value: stats.obs },
     { label: 'CASILLAS', value: stats.casillas },
   ]
- 
+
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f4f7ec' }}>
       <p style={{ color: '#5a8012', fontWeight: 700, fontSize: '18px' }}>Cargando ECOSABANA...</p>
     </div>
   )
- 
+
   return (
     <div id="adminApp" style={{ minHeight: '100vh', background: '#f4f7ec' }}>
- 
+
       {/* ── HEADER ── */}
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -499,7 +485,7 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
- 
+
       {/* ── STATS ── */}
       <div className="stats">
         {statsCards.map(s => {
@@ -547,7 +533,7 @@ export default function AdminPage() {
           )
         })}
       </div>
- 
+
       {/* ── FILTERS ── */}
       <div className="filters">
         <div className="search-wrap">
@@ -565,9 +551,9 @@ export default function AdminPage() {
           <option>Ecoperador</option><option>RG</option><option>RC</option><option>Observador</option>
         </select>
       </div>
- 
+
       <div className="result-count">{filtered.length} persona{filtered.length !== 1 ? 's' : ''} encontrada{filtered.length !== 1 ? 's' : ''}</div>
- 
+
       {/* ── TABLE ── */}
       <div className="table-wrap">
         <table>
@@ -642,9 +628,9 @@ export default function AdminPage() {
           )}
         </table>
       </div>
- 
+
       <div className="page-footer">ECOSABANA Sonora 2027 · Partido Verde Ecologista de México · Sistema PVEM</div>
- 
+
       {/* ── MODAL PAGOS ── */}
       {payModal && (
         <div className="overlay open">
@@ -754,7 +740,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
- 
+
       {/* ── MODAL CREDENCIAL ── */}
       {credModal && (
         <div className="overlay open">
@@ -849,7 +835,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
- 
+
       {/* ── MODAL 1x20 ADMIN ── */}
       {modal1x20 && (
         <div className="overlay open">
@@ -938,7 +924,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
- 
+
       {/* ── MODAL PAGO LÍDER 1x20 ── */}
       {pagoLider && (
         <div className="overlay open">
@@ -948,7 +934,7 @@ export default function AdminPage() {
               <button className="modal-close" onClick={() => setPagoLider(null)}>×</button>
             </div>
             <div className="modal-body">
- 
+
               {/* ECO COORDINADOR */}
               <div className="pay-section" style={{ marginBottom:'16px' }}>
                 <h4>🌱 Eco Coordinador — $300</h4>
@@ -1002,7 +988,7 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
- 
+
               {/* PRESIDENTE DE COMITÉ */}
               <div className="pay-section">
                 <h4>👥 Presidente de Comité — ${(pagoLider.personas_count||0)*50} ({pagoLider.personas_count||0}×$50)</h4>
@@ -1061,7 +1047,7 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
- 
+
               <div className="pay-total" style={{ marginTop:'16px' }}>
                 <span>Total a pagar</span>
                 <span>${300 + (pagoLider.personas_count||0)*50}</span>
@@ -1074,7 +1060,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
- 
+
       {/* ── MODAL ESTADÍSTICAS ── */}
       {statsModal && (
         <div className="overlay open">
@@ -1088,7 +1074,7 @@ export default function AdminPage() {
                 const cat = getCatorcena()
                 const yr = new Date().getFullYear()
                 const catActual = `Cat. ${cat} / ${yr}`
- 
+
                 // Filter pagos by selected range
                 const filtered = pagos.filter((r:any) => {
                   if (statsFilter === 'fecha') {
@@ -1106,7 +1092,7 @@ export default function AdminPage() {
                     return r.catorcena === parseInt(c.trim()) && r.anio === parseInt(y.trim())
                   }
                 })
- 
+
                 // Group by catorcena
                 const catData: any = {}
                 filtered.forEach((r:any) => {
@@ -1119,10 +1105,10 @@ export default function AdminPage() {
                   if (r.tipo?.startsWith('rc')) catData[key].rc++
                   catData[key].personas.add(r.persona_id)
                 })
- 
+
                 const totalPagado = filtered.reduce((a:number,r:any) => a + (r.monto||0), 0)
                 const totalPersonas = new Set(filtered.map((r:any) => r.persona_id)).size
- 
+
                 // Get unique catorcenas for selector
                 const catOptions = [...new Set(pagos.map((r:any) => `${r.catorcena} / ${r.anio}`))]
                   .sort((a,b) => {
@@ -1130,7 +1116,7 @@ export default function AdminPage() {
                     const [cb,yb] = b.split('/').map(Number)
                     return yb - ya || cb - ca
                   })
- 
+
                 return (
                   <>
                     {/* Filtros */}
@@ -1157,7 +1143,7 @@ export default function AdminPage() {
                           Limpiar
                         </button>
                       </div>
- 
+
                       {statsFilter === 'catorcena' ? (
                         <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
                           <label style={{ fontSize:'12px', fontWeight:600, color:'#3d5a09' }}>Catorcena:</label>
@@ -1188,7 +1174,7 @@ export default function AdminPage() {
                         </div>
                       )}
                     </div>
- 
+
                     {/* Totales */}
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'10px', marginBottom:'16px' }}>
                       {[
@@ -1203,7 +1189,7 @@ export default function AdminPage() {
                         </div>
                       ))}
                     </div>
- 
+
                     {/* Tabla por catorcena */}
                     {Object.keys(catData).length === 0 ? (
                       <p style={{ textAlign:'center', color:'#aaa', padding:'30px' }}>
@@ -1265,7 +1251,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
- 
+
       {/* ── MODAL LISTA POR CATEGORÍA ── */}
       {listModal && (
         <div className="overlay open">
@@ -1328,7 +1314,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
- 
+
       {/* ── MODAL CONFIRMAR ELIMINAR ── */}
       {confirmId && (
         <div className="overlay open">
