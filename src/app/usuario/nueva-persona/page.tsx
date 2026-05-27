@@ -74,6 +74,9 @@ export default function NuevaPersonaUsuario() {
     rg_nombre:'', rg_tel:'', rg_banco:'', rg_cuenta:'',
   })
   const [rcs, setRcs] = useState([emptyRC(1)])
+  const [ecoSearch, setEcoSearch] = useState('')
+  const [ecoResults, setEcoResults] = useState<any[]>([])
+  const [ecoSeleccionado, setEcoSeleccionado] = useState<any>(null)
  
   const set = (k:string,v:any) => setForm((f:any)=>({...f,[k]:v}))
  
@@ -87,6 +90,17 @@ export default function NuevaPersonaUsuario() {
     if(val.length < 6) return
     const {data} = await supabase.from('personas').select('nombre').eq('clave_elector',val.trim()).limit(1)
     setDupClave(data && data.length > 0 ? `⚠️ Clave ya registrada para: "${data[0].nombre}"` : '')
+  }
+ 
+  async function searchEco(q:string) {
+    setEcoSearch(q)
+    if (q.length < 2) { setEcoResults([]); return }
+    const { data } = await supabase.from('personas')
+      .select('id,nombre,municipio,celular')
+      .eq('rol','Ecoperador')
+      .ilike('nombre', `%${q}%`)
+      .limit(5)
+    setEcoResults(data || [])
   }
  
   function toggleStatus(s:string) {
@@ -115,7 +129,7 @@ export default function NuevaPersonaUsuario() {
       [form.foto_ine_reverso,'Foto INE reverso'],
       [form.foto_selfie,'Foto selfie'],
     ]
-    const missing = required.filter(([v])=>!v).map(([,l])=>l)
+    const missing = required.filter((row)=>!row[0]).map((row)=>row[1])
     if(missing.length>0){alert(`Campos obligatorios faltantes:\n• ${missing.join('\n• ')}`);return}
     if(dupNombre||dupClave){
       if(!confirm('Hay posibles duplicados. ¿Continuar de todas formas?'))return
@@ -209,6 +223,53 @@ export default function NuevaPersonaUsuario() {
                   <option>RC</option><option>Observador</option>
                 </select>
               </div>
+ 
+              {/* ENLACE CON ECOPERADOR - solo para RG y RC */}
+              {(form.rol === 'RG' || form.rol === 'RC' || form.rol === 'Observador') && (
+                <div className="form-group full">
+                  <label>🔗 Enlazar con Ecoperador</label>
+                  <div style={{position:'relative'}}>
+                    <input
+                      type="text"
+                      value={ecoSeleccionado ? ecoSeleccionado.nombre : ecoSearch}
+                      onChange={e => { setEcoSeleccionado(null); searchEco(e.target.value) }}
+                      placeholder="Buscar Ecoperador por nombre..."
+                    />
+                    {ecoResults.length > 0 && !ecoSeleccionado && (
+                      <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:100,
+                        background:'#fff',border:'1.5px solid #C8DF8E',borderRadius:'10px',
+                        boxShadow:'0 8px 24px rgba(0,0,0,.12)',overflow:'hidden'}}>
+                        {ecoResults.map((eco:any) => (
+                          <div key={eco.id}
+                            onClick={() => { setEcoSeleccionado(eco); setEcoResults([]) }}
+                            style={{padding:'10px 14px',cursor:'pointer',borderBottom:'1px solid #eef3e0',
+                              fontSize:'13px',fontWeight:600,color:'#2e4a08'}}
+                            onMouseEnter={e=>(e.currentTarget.style.background='#eef6d0')}
+                            onMouseLeave={e=>(e.currentTarget.style.background='#fff')}>
+                            {eco.nombre}
+                            <span style={{fontSize:'11px',color:'#7a8060',marginLeft:'8px'}}>
+                              {eco.municipio} {eco.celular?'· '+eco.celular:''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {ecoSeleccionado && (
+                    <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'6px',
+                      padding:'8px 12px',background:'#eef6d0',borderRadius:'8px',border:'1px solid #C8DF8E'}}>
+                      <span style={{fontSize:'12px',fontWeight:700,color:'#2e4a08'}}>
+                        ✓ Enlazado con: {ecoSeleccionado.nombre}
+                      </span>
+                      <button type="button" onClick={()=>{setEcoSeleccionado(null);setEcoSearch('')}}
+                        style={{background:'none',border:'none',cursor:'pointer',color:'#EF4135',fontSize:'16px',padding:0}}>×</button>
+                    </div>
+                  )}
+                  <small style={{color:'#7a8060',fontSize:'11px'}}>
+                    Opcional — permite al admin ver la jerarquía de estructura
+                  </small>
+                </div>
+              )}
  
               {/* FECHA DE REGISTRO */}
               <div className="form-group full">

@@ -299,7 +299,7 @@ export default function AdminPage() {
               const a1 = (row[iApPat]||'').toString().trim()
               const a2 = (row[iApMat]||'').toString().trim()
               const n1 = (row[iNomP]||'').toString().trim()
-              nombre = `${a1} ${a2} ${n1}`.trim().replace(/\s+/g,' ').toUpperCase()
+              nombre = `${n1} ${a1} ${a2}`.trim().replace(/\s+/g,' ').toUpperCase()
             } else {
               nombre = (row[iNomCol]||'').toString().trim().toUpperCase()
             }
