@@ -3,16 +3,16 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { MUNICIPIOS, BANCOS } from '@/lib/constants'
- 
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
- 
+
 const STATUS_OPTS = ['Localizado','Validado','Pagado','Credencializado']
 const DIST_LOCAL = Array.from({length:21},(_,i)=>i+1)
 const DIST_FED = Array.from({length:7},(_,i)=>i+1)
- 
+
 function FotoUpload({label,hint,fkey,form,set,inputRef}:any){
   return(
     <div className="form-group full">
@@ -50,20 +50,23 @@ function FotoUpload({label,hint,fkey,form,set,inputRef}:any){
     </div>
   )
 }
- 
+
 export default function EditarPersonaUsuario(){
   const router = useRouter()
   const params = useParams()
   const id = params?.id as string
   const [loading,setLoading]=useState(true)
   const [saving,setSaving]=useState(false)
+  const [ecoSearch,setEcoSearch]=useState('')
+  const [ecoResults,setEcoResults]=useState<any[]>([])
+  const [ecoSeleccionado,setEcoSeleccionado]=useState<any>(null)
   const [dupNombre,setDupNombre]=useState('')
   const [dupClave,setDupClave]=useState('')
   const fotoRef=useRef<HTMLInputElement>(null)
   const ineAnvRef=useRef<HTMLInputElement>(null)
   const ineRevRef=useRef<HTMLInputElement>(null)
   const selfieRef=useRef<HTMLInputElement>(null)
- 
+
   const [form,setFormState]=useState<any>({
     nombre:'',telefono:'',sexo:'',edad:'',clave_elector:'',
     calle:'',numero_ext:'',colonia:'',cp:'',seccion_electoral:'',
@@ -75,9 +78,20 @@ export default function EditarPersonaUsuario(){
     rg_nombre:'',rg_tel:'',rg_banco:'',rg_cuenta:'',
   })
   const [rcs,setRcs]=useState<any[]>([])
- 
+
   useEffect(()=>{if(id)loadPersona()},[id])
- 
+
+  async function searchEco(q:string){
+    setEcoSearch(q)
+    if(q.length<2){setEcoResults([]);return}
+    const {data}=await supabase.from('personas')
+      .select('id,nombre,municipio,celular')
+      .eq('rol','Ecoperador')
+      .ilike('nombre',`%${q}%`)
+      .limit(5)
+    setEcoResults(data||[])
+  }
+
   async function loadPersona(){
     const [{data:p},{data:eco},{data:rcsData}]=await Promise.all([
       supabase.from('personas').select('*').eq('id',id).single(),
@@ -121,23 +135,28 @@ export default function EditarPersonaUsuario(){
     } else {
       setRcs([{num:1,nombre:'',tel:'',banco:'',cuenta:''}])
     }
+    // Check if already linked to an eco
+    if(p.notas && p.notas.includes('Enlazado con Eco:')) {
+      const ecoNombre = p.notas.replace('Enlazado con Eco:','').trim()
+      setEcoSearch(ecoNombre)
+    }
     setLoading(false)
   }
- 
+
   const set=(k:string,v:any)=>setFormState((f:any)=>({...f,[k]:v}))
- 
+
   async function checkDupNombre(val:string){
     if(val.length<4)return
     const {data}=await supabase.from('personas').select('nombre').ilike('nombre',`%${val.trim()}%`).neq('id',id).limit(1)
     setDupNombre(data&&data.length>0?`⚠️ Ya existe: "${data[0].nombre}"`:'')
   }
- 
+
   async function checkDupClave(val:string){
     if(val.length<6)return
     const {data}=await supabase.from('personas').select('nombre').eq('clave_elector',val.trim()).neq('id',id).limit(1)
     setDupClave(data&&data.length>0?`⚠️ Clave ya registrada para: "${data[0].nombre}"`:'')
   }
- 
+
   function toggleStatus(s:string){
     setFormState((f:any)=>{
       const cur=f.status as string[]
@@ -145,25 +164,25 @@ export default function EditarPersonaUsuario(){
       return{...f,status:[...cur,s]}
     })
   }
- 
+
   function addRC(){setRcs(p=>[...p,{num:p.length+1,nombre:'',tel:'',banco:'',cuenta:''}])}
   function removeRC(i:number){setRcs(p=>p.filter((_,j)=>j!==i).map((r,j)=>({...r,num:j+1})))}
   function setRC(i:number,k:string,v:string){setRcs(p=>p.map((r,j)=>j===i?{...r,[k]:v}:r))}
- 
+
   async function handleSave(){
     if(!form.nombre){alert('El nombre es requerido');return}
     if(dupNombre||dupClave){
       if(!confirm('Hay posibles duplicados. ¿Continuar?'))return
     }
     setSaving(true)
- 
+
     const hasRG=!!(form.rg_nombre||form.rg_tel)
     const rcCount=rcs.filter(r=>r.nombre||r.tel).length
     let pago=0
     if(form.rol==='Ecoperador')pago=(hasRG?100:0)+rcCount*50
     else if(form.rol==='RG')pago=300
     else if(form.rol==='RC'||form.rol==='Observador')pago=200
- 
+
     const {error}=await supabase.from('personas').update({
       nombre:form.nombre,
       celular:form.telefono,
@@ -182,15 +201,15 @@ export default function EditarPersonaUsuario(){
       seccion:form.seccion_electoral,
       distrito_local:parseInt(form.distrito_local)||null,
       distrito_federal:parseInt(form.distrito_federal)||null,
-      observaciones:form.observaciones,notas:form.notas,
+      observaciones:form.observaciones,notas:ecoSeleccionado?`Enlazado con Eco: ${ecoSeleccionado.nombre}`:form.notas,
       foto_ine_anverso:form.foto_ine_anverso||null,
       foto_ine_reverso:form.foto_ine_reverso||null,
       foto_selfie:form.foto_selfie||null,
       fecha_registro:form.fecha_registro,
     }).eq('id',id)
- 
+
     if(error){alert('Error: '+error.message);setSaving(false);return}
- 
+
     if(form.rol==='Ecoperador'){
       const {data:existingEco}=await supabase.from('ecoperadores').select('id').eq('id',id).single()
       const ecoData={rg_nombre:form.rg_nombre,rg_tel:form.rg_tel,rg_banco:form.rg_banco,rg_cuenta:form.rg_cuenta}
@@ -210,17 +229,17 @@ export default function EditarPersonaUsuario(){
     }
     router.push('/usuario')
   }
- 
+
   const ST=({children}:{children:any})=>(
     <div className="section-title" style={{gridColumn:'1/-1',marginTop:'8px'}}>{children}</div>
   )
- 
+
   if(loading)return(
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#f4f7ec'}}>
       <p style={{color:'#5a8012',fontWeight:700}}>Cargando...</p>
     </div>
   )
- 
+
   return(
     <div style={{minHeight:'100vh',background:'#f4f7ec',paddingBottom:'40px'}}>
       <div className="header">
@@ -229,13 +248,13 @@ export default function EditarPersonaUsuario(){
           <div className="header-title"><h1>Editar Persona</h1><p>Sistema de gestión PVEM</p></div>
         </div>
       </div>
- 
+
       <div className="form-page-wrap">
         <div className="modal" style={{borderRadius:'18px',overflow:'visible',maxWidth:'100%'}}>
           <div className="modal-header"><h2>Editando: {form.nombre}</h2></div>
           <div className="modal-body">
             <div className="form-grid">
- 
+
               <div className="form-group full">
                 <label>Rol</label>
                 <select className="form-select" value={form.rol} onChange={e=>set('rol',e.target.value)}>
@@ -244,7 +263,7 @@ export default function EditarPersonaUsuario(){
                   <option>RC</option><option>Observador</option>
                 </select>
               </div>
- 
+
               <div className="form-group full">
                 <label>📅 Fecha de registro</label>
                 <input type="date" value={form.fecha_registro}
@@ -252,9 +271,54 @@ export default function EditarPersonaUsuario(){
                   style={{padding:'8px 12px',border:'1.5px solid #D4D8C8',borderRadius:'9px',
                     fontSize:'13px',fontFamily:'var(--font)',width:'220px'}}/>
               </div>
- 
+
+              {/* ENLACE CON ECOPERADOR */}
+              {(form.rol === 'RG' || form.rol === 'RC' || form.rol === 'Observador') && (
+                <div className="form-group full">
+                  <label>🔗 Enlazar con Ecoperador</label>
+                  <div style={{position:'relative'}}>
+                    <input type="text"
+                      value={ecoSeleccionado ? ecoSeleccionado.nombre : ecoSearch}
+                      onChange={e=>{setEcoSeleccionado(null);searchEco(e.target.value)}}
+                      placeholder="Buscar Ecoperador por nombre..."/>
+                    {ecoResults.length>0 && !ecoSeleccionado && (
+                      <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:100,
+                        background:'#fff',border:'1.5px solid #C8DF8E',borderRadius:'10px',
+                        boxShadow:'0 8px 24px rgba(0,0,0,.12)',overflow:'hidden'}}>
+                        {ecoResults.map((eco:any)=>(
+                          <div key={eco.id}
+                            onClick={()=>{setEcoSeleccionado(eco);setEcoResults([])}}
+                            style={{padding:'10px 14px',cursor:'pointer',borderBottom:'1px solid #eef3e0',
+                              fontSize:'13px',fontWeight:600,color:'#2e4a08'}}
+                            onMouseEnter={e=>(e.currentTarget.style.background='#eef6d0')}
+                            onMouseLeave={e=>(e.currentTarget.style.background='#fff')}>
+                            {eco.nombre}
+                            <span style={{fontSize:'11px',color:'#7a8060',marginLeft:'8px'}}>
+                              {eco.municipio}{eco.celular?' · '+eco.celular:''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {ecoSeleccionado && (
+                    <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'6px',
+                      padding:'8px 12px',background:'#eef6d0',borderRadius:'8px',border:'1px solid #C8DF8E'}}>
+                      <span style={{fontSize:'12px',fontWeight:700,color:'#2e4a08'}}>
+                        ✓ Enlazado con: {ecoSeleccionado.nombre}
+                      </span>
+                      <button type="button" onClick={()=>{setEcoSeleccionado(null);setEcoSearch('')}}
+                        style={{background:'none',border:'none',cursor:'pointer',color:'#EF4135',fontSize:'16px',padding:0}}>×</button>
+                    </div>
+                  )}
+                  <small style={{color:'#7a8060',fontSize:'11px'}}>
+                    Al guardar quedará enlazado con el Ecoperador seleccionado
+                  </small>
+                </div>
+              )}
+
               <ST>📋 Datos Generales</ST>
- 
+
               <div className="form-group full">
                 <label>Nombre completo (MAYÚSCULAS) <span className="req">*</span></label>
                 <input type="text" value={form.nombre}
@@ -262,7 +326,7 @@ export default function EditarPersonaUsuario(){
                   style={{textTransform:'uppercase'}}/>
                 {dupNombre&&<p style={{color:'#EF4135',fontSize:'11px',fontWeight:700,marginTop:'3px'}}>{dupNombre}</p>}
               </div>
- 
+
               <div className="form-group">
                 <label>Teléfono</label>
                 <input type="tel" value={form.telefono} onChange={e=>set('telefono',e.target.value)}/>
@@ -286,7 +350,7 @@ export default function EditarPersonaUsuario(){
                   maxLength={18} style={{textTransform:'uppercase'}}/>
                 {dupClave&&<p style={{color:'#EF4135',fontSize:'11px',fontWeight:700,marginTop:'3px'}}>{dupClave}</p>}
               </div>
- 
+
               <ST>🏠 Dirección</ST>
               <div className="form-group">
                 <label>Calle</label>
@@ -308,7 +372,7 @@ export default function EditarPersonaUsuario(){
                 <label>Sección Electoral</label>
                 <input type="text" value={form.seccion_electoral} onChange={e=>set('seccion_electoral',e.target.value)}/>
               </div>
- 
+
               <ST>🗺️ Ubicación Electoral</ST>
               <div className="form-group">
                 <label>Municipio</label>
@@ -331,7 +395,7 @@ export default function EditarPersonaUsuario(){
                   {DIST_FED.map(d=><option key={d} value={d}>Distrito {d}</option>)}
                 </select>
               </div>
- 
+
               <ST>💳 Datos de Pago</ST>
               <div className="form-group">
                 <label>Banco</label>
@@ -348,7 +412,7 @@ export default function EditarPersonaUsuario(){
                 <label>Folio</label>
                 <input type="text" value={form.folio} onChange={e=>set('folio',e.target.value)}/>
               </div>
- 
+
               <ST>📊 Status</ST>
               <div className="form-group full">
                 <div className="status-checks">
@@ -360,7 +424,7 @@ export default function EditarPersonaUsuario(){
                   ))}
                 </div>
               </div>
- 
+
               <ST>📝 Observaciones y Notas</ST>
               <div className="form-group">
                 <label>Observaciones</label>
@@ -374,7 +438,7 @@ export default function EditarPersonaUsuario(){
                   rows={3} style={{padding:'8px 12px',border:'1.5px solid #D4D8C8',borderRadius:'9px',
                     fontSize:'13px',width:'100%',fontFamily:'var(--font)',resize:'vertical'}}/>
               </div>
- 
+
               <ST>📸 Fotografías</ST>
               <div className="form-group full">
                 <label>Foto de perfil</label>
@@ -392,14 +456,14 @@ export default function EditarPersonaUsuario(){
                     onChange={e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>set('foto',ev.target?.result as string);r.readAsDataURL(f)}}/>
                 </div>
               </div>
- 
+
               <FotoUpload label="INE Anverso (frente)" fkey="foto_ine_anverso" form={form} set={set} inputRef={ineAnvRef}
                 hint="Foto del frente de la INE. Sin flash, sin brillos, fondo neutro."/>
               <FotoUpload label="INE Reverso (vuelta)" fkey="foto_ine_reverso" form={form} set={set} inputRef={ineRevRef}
                 hint="Foto de la parte trasera de la INE. Sin flash, sin brillos, fondo neutro."/>
               <FotoUpload label="Foto Selfie" fkey="foto_selfie" form={form} set={set} inputRef={selfieRef}
                 hint="Foto selfie de frente. Sin poses, sin lentes, sin gorra, buena iluminación."/>
- 
+
               {form.rol==='Ecoperador'&&<>
                 <ST>👤 Datos del RG</ST>
                 <div className="form-group">
@@ -421,7 +485,7 @@ export default function EditarPersonaUsuario(){
                   <label>Cuenta RG</label>
                   <input type="text" value={form.rg_cuenta} onChange={e=>set('rg_cuenta',e.target.value)}/>
                 </div>
- 
+
                 <div className="section-title" style={{gridColumn:'1/-1',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <span>📋 RCs</span>
                   <button type="button" onClick={addRC}
@@ -430,7 +494,7 @@ export default function EditarPersonaUsuario(){
                     + Agregar RC
                   </button>
                 </div>
- 
+
                 {rcs.map((rc,i)=>(
                   <div key={i} className="form-group full">
                     <div className="subsection">
@@ -469,7 +533,7 @@ export default function EditarPersonaUsuario(){
                   </div>
                 ))}
               </>}
- 
+
             </div>
           </div>
           <div className="modal-footer">
@@ -483,4 +547,3 @@ export default function EditarPersonaUsuario(){
     </div>
   )
 }
- 
