@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { initials, badgeClass, statusBadgeClass, getCatorcena, getWeekNum, RC_LABELS, MASCOT_SRC, QR_SRC } from '@/lib/constants'
+import { initials, badgeClass, statusBadgeClass, getCatorcena, getWeekNum, RC_LABELS, MASCOT_SRC, QR_SRC, LOGO_SRC } from '@/lib/constants'
 import * as XLSX from 'xlsx'
 
 const supabase = createClient(
@@ -753,7 +753,7 @@ export default function AdminPage() {
       {/* ── MODAL CREDENCIAL ── */}
       {credModal && (
         <div className="overlay open">
-          <div className="modal" style={{ maxWidth:'700px' }}>
+          <div className="modal" style={{ maxWidth:'680px' }}>
             <div className="modal-header">
               <h2>🖨️ Credencial — {credModal.nombre}</h2>
               <button className="modal-close" onClick={() => setCredModal(null)}>×</button>
@@ -777,153 +777,149 @@ export default function AdminPage() {
                 ))}
               </div>
 
-              <p style={{ fontSize:'11px', color:'#7a8060', marginBottom:'10px', fontWeight:600 }}>
-                Vista previa — Gafete horizontal PVEM
-              </p>
-
-              {/* CREDENCIAL HORIZONTAL - frente y vuelta */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'12px', alignItems:'center' }}>
+              {/* Credenciales frente y vuelta en vertical lado a lado */}
+              <div style={{ display:'flex', gap:'20px', justifyContent:'center', flexWrap:'wrap' }}>
 
                 {/* FRENTE */}
-                <div>
-                  <p style={{ fontSize:'10px', color:'#7a8060', textAlign:'center', marginBottom:'4px' }}>FRENTE</p>
+                <div style={{ textAlign:'center' }}>
+                  <p style={{ fontSize:'11px', color:'#7a8060', marginBottom:'6px', fontWeight:700 }}>FRENTE</p>
                   <div id="cred-preview-front" style={{
-                    width:'360px', height:'228px',
-                    display:'flex',
+                    width:'212px', height:'336px',
+                    background:'#fff',
                     border:'3px solid #1a4000',
-                    borderRadius:'8px',
+                    borderRadius:'10px',
                     overflow:'hidden',
                     fontFamily:"'Arial',sans-serif",
-                    boxShadow:'0 4px 16px rgba(0,0,0,.2)',
+                    boxShadow:'0 6px 20px rgba(0,0,0,.25)',
+                    display:'flex', flexDirection:'column',
                   }}>
-                    {/* Lado izquierdo - verde */}
+                    {/* Header verde con logo */}
                     <div style={{
-                      width:'42%',
-                      background:'linear-gradient(180deg,#1a4000 0%,#2d6600 60%,#3d8000 100%)',
-                      display:'flex', flexDirection:'column',
-                      alignItems:'center', padding:'10px 8px', gap:'6px',
+                      background:'linear-gradient(180deg,#0d2e00 0%,#1a5000 50%,#2d7a00 100%)',
+                      padding:'10px 10px 8px',
+                      display:'flex', alignItems:'center', justifyContent:'space-between',
                     }}>
-                      {/* Logo V */}
-                      <div style={{ display:'flex', alignItems:'center', gap:'4px' }}>
-                        <div style={{ width:'22px', height:'22px', background:'#fff', borderRadius:'3px',
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          fontSize:'13px', fontWeight:900, color:'#1a4000' }}>V</div>
-                        <div style={{ fontSize:'7px', fontWeight:900, color:'#fff', lineHeight:1.2 }}>
-                          VERDE<br/>SONORA
-                        </div>
+                      <div style={{ color:'#fff', fontSize:'7px', fontWeight:900, lineHeight:1.3 }}>
+                        PARTIDO VERDE<br/>ECOLOGISTA DE<br/>MÉXICO
                       </div>
-
-                      {/* Foto selfie */}
-                      {credFields['foto'] ? (
-                        credModal.foto_selfie
-                          ? <img src={credModal.foto_selfie} style={{ width:'72px', height:'90px',
-                              objectFit:'cover', border:'2px solid #a8d840', borderRadius:'2px' }}/>
-                          : credModal.foto
-                          ? <img src={credModal.foto} style={{ width:'72px', height:'90px',
-                              objectFit:'cover', border:'2px solid #a8d840', borderRadius:'2px' }}/>
-                          : <div style={{ width:'72px', height:'90px', background:'rgba(255,255,255,.15)',
-                              border:'2px solid #a8d840', display:'flex', alignItems:'center',
-                              justifyContent:'center', fontSize:'24px' }}>👤</div>
-                      ) : null}
-
-                      {/* PARTIDO VERDE texto */}
-                      <div style={{ fontSize:'6px', fontWeight:900, color:'#a8d840',
-                        textAlign:'center', lineHeight:1.3, marginTop:'auto' }}>
-                        PARTIDO VERDE<br/>ECOLOGISTA DE MÉXICO
-                      </div>
+                      <img src={LOGO_SRC} alt="Logo PVEM" style={{
+                        width:'60px', height:'60px', objectFit:'contain',
+                        borderRadius:'6px',
+                      }}/>
                     </div>
 
-                    {/* Lado derecho - blanco */}
+                    {/* Foto centrada */}
+                    <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 6px', background:'#fff' }}>
+                      {credFields['foto'] ? (
+                        credModal.foto_selfie
+                          ? <img src={credModal.foto_selfie} style={{ width:'90px', height:'110px', objectFit:'cover', border:'3px solid #2d7a00' }}/>
+                          : credModal.foto
+                          ? <img src={credModal.foto} style={{ width:'90px', height:'110px', objectFit:'cover', border:'3px solid #2d7a00' }}/>
+                          : <div style={{ width:'90px', height:'110px', background:'#e8f5e0', border:'3px solid #2d7a00',
+                              display:'flex', alignItems:'center', justifyContent:'center', fontSize:'32px' }}>👤</div>
+                      ) : (
+                        <div style={{ width:'90px', height:'110px', background:'#e8f5e0', border:'3px solid #2d7a00',
+                          display:'flex', alignItems:'center', justifyContent:'center', fontSize:'32px' }}>👤</div>
+                      )}
+                    </div>
+
+                    {/* Nombre centrado */}
+                    {credFields['nombre'] && (
+                      <div style={{ textAlign:'center', fontSize:'8.5px', fontWeight:700, color:'#000',
+                        padding:'0 8px 6px', lineHeight:1.3, textTransform:'uppercase' }}>
+                        {credModal.nombre}
+                      </div>
+                    )}
+
+                    {/* Línea verde */}
+                    <div style={{ height:'2px', background:'linear-gradient(90deg,#1a5000,#4ab800)', margin:'0 8px 6px' }}/>
+
+                    {/* Datos en negrita */}
+                    <div style={{ padding:'0 10px', fontSize:'7.5px', color:'#000', lineHeight:1.9, flex:1 }}>
+                      {credFields['folio'] && credModal.folio && (
+                        <div><strong>FOLIO:</strong> {String(credModal.folio).padStart(5,'0')}</div>
+                      )}
+                      {credFields['rol'] && (
+                        <div><strong>CARGO:</strong> {(credModal.rol||'').toUpperCase()}</div>
+                      )}
+                      {credFields['seccion'] && credModal.casilla && (
+                        <div><strong>SECCIÓN:</strong> {String(credModal.casilla).padStart(4,'0')}</div>
+                      )}
+                      {credFields['municipio'] && credModal.municipio && (
+                        <div><strong>MUNICIPIO:</strong> {(credModal.municipio||'').toUpperCase()}</div>
+                      )}
+                      {credFields['distrito_local'] && credModal.distrito_local && (
+                        <div><strong>DIST. LOCAL:</strong> {String(credModal.distrito_local).padStart(2,'0')}</div>
+                      )}
+                      {credFields['distrito_federal'] && credModal.distrito_federal && (
+                        <div><strong>DIST. FEDERAL:</strong> {String(credModal.distrito_federal).padStart(2,'0')}</div>
+                      )}
+                    </div>
+
+                    {/* Footer */}
                     <div style={{
-                      width:'58%', background:'#fff',
-                      display:'flex', flexDirection:'column',
-                      padding:'10px',
+                      background:'linear-gradient(180deg,#1a5000,#0d2e00)',
+                      padding:'6px 8px',
+                      textAlign:'center',
                     }}>
-                      {/* Header con línea verde */}
-                      <div style={{ borderBottom:'3px solid #2d6600', paddingBottom:'5px', marginBottom:'6px' }}>
-                        {credFields['nombre'] && (
-                          <div style={{ fontSize:'9px', fontWeight:900, color:'#1a4000',
-                            lineHeight:1.2, textTransform:'uppercase' }}>
-                            {credModal.nombre}
-                          </div>
-                        )}
-                        {credFields['rol'] && (
-                          <div style={{ fontSize:'7.5px', fontWeight:700, color:'#3d8000', marginTop:'2px' }}>
-                            {credModal.rol?.toUpperCase()}
-                          </div>
-                        )}
+                      <div style={{ fontSize:'6.5px', fontWeight:900, color:'#fff',
+                        textTransform:'uppercase', lineHeight:1.4 }}>
+                        {credModal.nombre}
                       </div>
-
-                      {/* Datos en negrita */}
-                      <div style={{ fontSize:'7.5px', color:'#000', lineHeight:1.8 }}>
-                        {credFields['folio'] && credModal.folio && (
-                          <div><strong>FOLIO:</strong> {String(credModal.folio).padStart(5,'0')}</div>
-                        )}
-                        {credFields['seccion'] && credModal.casilla && (
-                          <div><strong>SECCIÓN:</strong> {String(credModal.casilla).padStart(4,'0')}</div>
-                        )}
-                        {credFields['municipio'] && credModal.municipio && (
-                          <div><strong>MUNICIPIO:</strong> {credModal.municipio?.toUpperCase()}</div>
-                        )}
-                        {credFields['distrito_local'] && credModal.distrito_local && (
-                          <div><strong>DIST. LOCAL:</strong> {String(credModal.distrito_local).padStart(2,'0')}</div>
-                        )}
-                        {credFields['distrito_federal'] && credModal.distrito_federal && (
-                          <div><strong>DIST. FEDERAL:</strong> {String(credModal.distrito_federal).padStart(2,'0')}</div>
-                        )}
-                      </div>
-
-                      {/* Footer firma */}
-                      <div style={{ marginTop:'auto', borderTop:'1px solid #ddd', paddingTop:'4px' }}>
-                        <div style={{ fontSize:'6px', fontWeight:900, color:'#1a4000',
-                          textAlign:'center', lineHeight:1.3, textTransform:'uppercase' }}>
-                          {credModal.nombre}
-                          {credFields['rol'] && <div style={{ fontWeight:400 }}>{credModal.rol?.toUpperCase()}</div>}
+                      {credFields['rol'] && (
+                        <div style={{ fontSize:'6px', color:'#a8d840', fontWeight:700 }}>
+                          {(credModal.rol||'').toUpperCase()}
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* VUELTA */}
-                <div>
-                  <p style={{ fontSize:'10px', color:'#7a8060', textAlign:'center', marginBottom:'4px' }}>VUELTA</p>
+                <div style={{ textAlign:'center' }}>
+                  <p style={{ fontSize:'11px', color:'#7a8060', marginBottom:'6px', fontWeight:700 }}>VUELTA</p>
                   <div id="cred-preview-back" style={{
-                    width:'360px', height:'228px',
-                    display:'flex', alignItems:'center', justifyContent:'space-around',
+                    width:'212px', height:'336px',
+                    background:'linear-gradient(180deg,#f8fff0,#eaf8d0)',
                     border:'3px solid #1a4000',
-                    borderRadius:'8px',
+                    borderRadius:'10px',
                     overflow:'hidden',
-                    background:'linear-gradient(135deg,#f8fff0,#e8f8d0)',
                     fontFamily:"'Arial',sans-serif",
-                    padding:'16px',
-                    boxShadow:'0 4px 16px rgba(0,0,0,.2)',
+                    boxShadow:'0 6px 20px rgba(0,0,0,.25)',
+                    display:'flex', flexDirection:'column',
+                    alignItems:'center', padding:'14px 12px',
+                    gap:'8px',
                   }}>
-                    {/* Mascota */}
-                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'8px' }}>
-                      <div style={{ fontSize:'8px', fontWeight:900, color:'#1a4000', textAlign:'center', lineHeight:1.3 }}>
-                        SÍGUENOS EN NUESTRAS<br/>REDES SOCIALES
-                      </div>
-                      <img src={MASCOT_SRC} alt="Mascota" style={{ width:'80px', height:'80px', objectFit:'contain' }}/>
-                      <div style={{ fontSize:'7px', color:'#3d8000', textAlign:'center', lineHeight:1.5 }}>
-                        <div>Expedición: {new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase()}</div>
-                        <div>Vigencia: 31/DIC/2027</div>
-                      </div>
+                    {/* Header */}
+                    <div style={{ fontSize:'8px', fontWeight:900, color:'#1a4000',
+                      textAlign:'center', lineHeight:1.4 }}>
+                      SÍGUENOS EN NUESTRAS<br/>REDES SOCIALES
                     </div>
 
+                    {/* Mascota */}
+                    <img src={MASCOT_SRC} alt="Mascota" style={{ width:'90px', height:'90px', objectFit:'contain' }}/>
+
                     {/* QR */}
-                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'6px' }}>
-                      <img src={QR_SRC} alt="QR" style={{
-                        width:'110px', height:'110px',
-                        objectFit:'contain',
-                        border:'2px solid #2d6600',
-                        borderRadius:'4px',
-                        padding:'4px',
-                        background:'#fff',
-                      }}/>
+                    <img src={QR_SRC} alt="QR" style={{
+                      width:'120px', height:'120px',
+                      objectFit:'contain',
+                      border:'2px solid #2d7a00',
+                      borderRadius:'6px',
+                      padding:'4px',
+                      background:'#fff',
+                    }}/>
+
+                    {/* Fechas */}
+                    <div style={{ fontSize:'7px', color:'#3d5a09', textAlign:'center',
+                      lineHeight:1.7, marginTop:'auto',
+                      border:'1px solid #c8e680', borderRadius:'6px',
+                      padding:'5px 10px', background:'rgba(255,255,255,.7)' }}>
+                      <div>Expedición: {new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase()}</div>
+                      <div>Vigencia: 31/DIC/2027</div>
                     </div>
                   </div>
                 </div>
+
               </div>
             </div>
             <div className="modal-footer">
@@ -934,14 +930,14 @@ export default function AdminPage() {
                   const front = document.getElementById('cred-preview-front')
                   const back = document.getElementById('cred-preview-back')
                   if (!front || !back) return
-                  const w = window.open('', '_blank', 'width=600,height=500')
+                  const w = window.open('', '_blank', 'width=500,height=700')
                   if (!w) return
                   w.document.write(`<!DOCTYPE html><html><head>
                     <title>Credencial — ${credModal.nombre}</title>
                     <style>
-                      @page { size: 85.6mm 54mm; margin: 0; }
+                      @page { size: 54mm 85.6mm; margin: 0; }
                       body { margin: 0; padding: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                      .page { page-break-after: always; display:flex; justify-content:center; align-items:center; height:54mm; }
+                      .page { page-break-after: always; display:flex; justify-content:center; align-items:center; height:85.6mm; }
                     </style>
                   </head><body>
                     <div class="page">${front.outerHTML}</div>
@@ -950,7 +946,7 @@ export default function AdminPage() {
                   </body></html>`)
                   w.document.close()
                 }}>
-                🖨️ Imprimir Frente y Vuelta
+                🖨️ Imprimir Credencial
               </button>
             </div>
           </div>
