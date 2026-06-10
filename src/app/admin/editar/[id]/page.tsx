@@ -60,9 +60,11 @@ export default function EditarPersonaAdmin(){
   const [ecoSearch,setEcoSearch]=useState('')
   const [ecoResults,setEcoResults]=useState<any[]>([])
   const [ecoSeleccionado,setEcoSeleccionado]=useState<any>(null)
+  const [rgSearch,setRgSearch]=useState('')
+  const [rgResults,setRgResults]=useState<any[]>([])
+  const [rgSeleccionado,setRgSeleccionado]=useState<any>(null)
   const [dupNombre,setDupNombre]=useState('')
   const [dupClave,setDupClave]=useState('')
-  const fotoRef=useRef<HTMLInputElement>(null)
   const ineAnvRef=useRef<HTMLInputElement>(null)
   const ineRevRef=useRef<HTMLInputElement>(null)
   const selfieRef=useRef<HTMLInputElement>(null)
@@ -80,6 +82,17 @@ export default function EditarPersonaAdmin(){
   const [rcs,setRcs]=useState<any[]>([])
 
   useEffect(()=>{if(id)loadPersona()},[id])
+
+  async function searchRG(q:string){
+    setRgSearch(q)
+    if(q.length<2){setRgResults([]);return}
+    const {data}=await supabase.from('personas')
+      .select('id,nombre,municipio,celular')
+      .eq('rol','RG')
+      .ilike('nombre',`%${q}%`)
+      .limit(5)
+    setRgResults(data||[])
+  }
 
   async function searchEco(q:string){
     setEcoSearch(q)
@@ -201,7 +214,7 @@ export default function EditarPersonaAdmin(){
       seccion:form.seccion_electoral,
       distrito_local:parseInt(form.distrito_local)||null,
       distrito_federal:parseInt(form.distrito_federal)||null,
-      observaciones:form.observaciones,notas:ecoSeleccionado?`Enlazado con Eco: ${ecoSeleccionado.nombre}`:form.notas,
+      observaciones:form.observaciones,notas: [ecoSeleccionado?`Enlazado con Eco: ${ecoSeleccionado.nombre}`:'', rgSeleccionado?`Enlazado con RG: ${rgSeleccionado.nombre}`:'', form.notas||''].filter(Boolean).join(' | '),
       foto_ine_anverso:form.foto_ine_anverso||null,
       foto_ine_reverso:form.foto_ine_reverso||null,
       foto_selfie:form.foto_selfie||null,
@@ -232,6 +245,11 @@ export default function EditarPersonaAdmin(){
 
   const ST=({children}:{children:any})=>(
     <div className="section-title" style={{gridColumn:'1/-1',marginTop:'8px'}}>{children}</div>
+  )
+  const Sub=({children}:{children:any})=>(
+    <div style={{gridColumn:'1/-1',marginTop:'12px',marginBottom:'2px',
+      fontSize:'13px',fontWeight:700,color:'#5a7a20',
+      borderBottom:'1px solid #dde8bb',paddingBottom:'5px'}}>{children}</div>
   )
 
   if(loading)return(
@@ -323,7 +341,7 @@ export default function EditarPersonaAdmin(){
                 <label>Nombre completo (MAYÚSCULAS) <span className="req">*</span></label>
                 <input type="text" value={form.nombre}
                   onChange={e=>{set('nombre',e.target.value.toUpperCase());checkDupNombre(e.target.value)}}
-                  style={{textTransform:'uppercase'}}/>
+                  style={{textTransform:'uppercase',border:'1.5px solid rgba(0,0,0,.2)'}}/>
                 {dupNombre&&<p style={{color:'#EF4135',fontSize:'11px',fontWeight:700,marginTop:'3px'}}>{dupNombre}</p>}
               </div>
 
@@ -351,7 +369,7 @@ export default function EditarPersonaAdmin(){
                 {dupClave&&<p style={{color:'#EF4135',fontSize:'11px',fontWeight:700,marginTop:'3px'}}>{dupClave}</p>}
               </div>
 
-              <ST>🏠 Dirección</ST>
+              <Sub>🏠 Dirección</Sub>
               <div className="form-group">
                 <label>Calle</label>
                 <input type="text" value={form.calle} onChange={e=>set('calle',e.target.value)}/>
@@ -373,7 +391,7 @@ export default function EditarPersonaAdmin(){
                 <input type="text" value={form.seccion_electoral} onChange={e=>set('seccion_electoral',e.target.value)}/>
               </div>
 
-              <ST>🗺️ Ubicación Electoral</ST>
+              <Sub>🗺️ Ubicación Electoral</Sub>
               <div className="form-group">
                 <label>Municipio</label>
                 <select className="form-select" value={form.municipio} onChange={e=>set('municipio',e.target.value)}>
@@ -396,7 +414,7 @@ export default function EditarPersonaAdmin(){
                 </select>
               </div>
 
-              <ST>💳 Datos de Pago</ST>
+              <Sub>💳 Datos de Pago</Sub>
               <div className="form-group">
                 <label>Banco</label>
                 <select className="form-select" value={form.banco} onChange={e=>set('banco',e.target.value)}>
@@ -412,8 +430,12 @@ export default function EditarPersonaAdmin(){
                 <label>Folio</label>
                 <input type="text" value={form.folio} onChange={e=>set('folio',e.target.value)}/>
               </div>
+              <div className="form-group">
+                <label>Sección Asignada <span style={{fontSize:'10px',color:'#7a8060'}}>(solo admin)</span></label>
+                <input type="text" value={form.seccion_asignada||''} onChange={e=>set('seccion_asignada',e.target.value)} placeholder="Asignar sección"/>
+              </div>
 
-              <ST>📊 Status</ST>
+              <Sub>📊 Status</Sub>
               <div className="form-group full">
                 <div className="status-checks">
                   {STATUS_OPTS.map((s,i)=>(
@@ -425,7 +447,7 @@ export default function EditarPersonaAdmin(){
                 </div>
               </div>
 
-              <ST>📝 Observaciones y Notas</ST>
+              <Sub>📝 Observaciones y Notas</Sub>
               <div className="form-group">
                 <label>Observaciones</label>
                 <textarea value={form.observaciones} onChange={e=>set('observaciones',e.target.value)}
@@ -440,22 +462,7 @@ export default function EditarPersonaAdmin(){
               </div>
 
               <ST>📸 Fotografías</ST>
-              <div className="form-group full">
-                <label>Foto de perfil</label>
-                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                  {form.foto
-                    ?<img src={form.foto} style={{width:'64px',height:'64px',borderRadius:'50%',objectFit:'cover',border:'3px solid #C8DF8E'}}/>
-                    :<div style={{width:'64px',height:'64px',borderRadius:'50%',background:'#eef6d0',
-                        border:'2px dashed #C8DF8E',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px'}}>📷</div>}
-                  <button type="button" onClick={()=>fotoRef.current?.click()}
-                    style={{padding:'7px 14px',border:'1px solid #C8DF8E',borderRadius:'8px',
-                      background:'#fff',color:'#3d5a09',fontSize:'12px',fontWeight:700,cursor:'pointer',fontFamily:'var(--font)'}}>
-                    ⬆ {form.foto?'Cambiar':'Subir'} foto perfil
-                  </button>
-                  <input ref={fotoRef} type="file" accept="image/*" style={{display:'none'}}
-                    onChange={e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>set('foto',ev.target?.result as string);r.readAsDataURL(f)}}/>
-                </div>
-              </div>
+
 
               <FotoUpload label="INE Anverso (frente)" fkey="foto_ine_anverso" form={form} set={set} inputRef={ineAnvRef}
                 hint="Foto del frente de la INE. Sin flash, sin brillos, fondo neutro."/>
@@ -465,7 +472,7 @@ export default function EditarPersonaAdmin(){
                 hint="Foto selfie de frente. Sin poses, sin lentes, sin gorra, buena iluminación."/>
 
               {form.rol==='Ecoperador'&&<>
-                <ST>👤 Datos del RG</ST>
+                <Sub>👤 Datos del RG</Sub>
                 <div className="form-group">
                   <label>Nombre del RG</label>
                   <input type="text" value={form.rg_nombre} onChange={e=>set('rg_nombre',e.target.value)}/>

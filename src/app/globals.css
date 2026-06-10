@@ -632,3 +632,33 @@ body {
   color: #2a6000 !important;
   border-left-color: #6db800 !important;
 }
+
+/* Form input borders */
+.form-grid input[type="text"],
+.form-grid input[type="tel"],
+.form-grid input[type="number"],
+.form-grid input[type="email"],
+.form-grid input[type="date"],
+.form-grid select,
+.form-grid textarea {
+  border: 1.5px solid rgba(0,0,0,.18) !important;
+  transition: border-color .15s;
+}
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  border-color: #6ab800 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(100,180,0,.15) !important;
+}
+/* Subtitle style */
+.form-subtitle {
+  grid-column: 1/-1;
+  margin-top: 12px;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5a7a20;
+  border-bottom: 1px solid #dde8bb;
+  padding-bottom: 5px;
+}

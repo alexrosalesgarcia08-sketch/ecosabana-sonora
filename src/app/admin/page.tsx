@@ -444,10 +444,11 @@ export default function AdminPage() {
             </button>
             {dropOpen && (
               <div style={{
-                position:'absolute', top:'calc(100% + 8px)', right:0,
+                position:'fixed', top:'auto', right:'auto',
                 background:'#fff', border:'1px solid #C8DF8E',
-                borderRadius:'12px', boxShadow:'0 10px 36px rgba(90,128,18,.2)',
-                minWidth:'200px', zIndex:500, overflow:'hidden',
+                borderRadius:'12px', boxShadow:'0 10px 36px rgba(90,128,18,.4)',
+                minWidth:'200px', zIndex:9999, overflow:'hidden',
+                marginTop:'4px',
               }}>
                 <button className="dropdown-item" onClick={() => { exportExcel(); setDropOpen(false) }}>
                   📊 Exportar Excel
@@ -744,89 +745,181 @@ export default function AdminPage() {
       {/* ── MODAL CREDENCIAL ── */}
       {credModal && (
         <div className="overlay open">
-          <div className="modal" style={{ maxWidth:'560px' }}>
+          <div className="modal" style={{ maxWidth:'680px' }}>
             <div className="modal-header">
               <h2>🖨️ Credencial — {credModal.nombre}</h2>
               <button className="modal-close" onClick={() => setCredModal(null)}>×</button>
             </div>
             <div className="modal-body">
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'16px' }}>
+              {/* Field selector */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'6px', marginBottom:'16px' }}>
                 {[
-                  ['foto','Foto'],['nombre','Nombre'],['rol','Rol'],['celular','Celular'],
-                  ['municipio','Municipio'],['distrito','Distrito'],['folio','Folio'],
-                  ['casilla','Sección/Casilla'],['banco','Banco'],['cuenta','Cuenta'],['status','Status'],
+                  ['foto','Foto'],['nombre','Nombre'],['rol','Cargo'],['folio','Folio'],
+                  ['seccion','Sección'],['municipio','Municipio'],['distrito_local','Dist. Local'],
+                  ['distrito_federal','Dist. Federal'],['status','Status'],
                 ].map(([k,label]) => (
-                  <label key={k} style={{ display:'flex', alignItems:'center', gap:'8px', padding:'7px 10px',
-                    border:'1px solid rgba(143,191,37,.3)', borderRadius:'9px', cursor:'pointer',
-                    background: credFields[k] ? '#eef6d0' : '#fff', transition:'all .12s' }}>
+                  <label key={k} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'6px 8px',
+                    border:'1px solid rgba(143,191,37,.3)', borderRadius:'8px', cursor:'pointer',
+                    background: credFields[k] ? '#eef6d0' : '#fff', fontSize:'12px' }}>
                     <input type="checkbox" checked={!!credFields[k]}
                       onChange={e => setCredFields((prev:any) => ({...prev, [k]: e.target.checked}))}
-                      style={{ width:'14px', height:'14px', accentColor:'#00B15A' }}/>
-                    <span style={{ fontSize:'13px', fontWeight:600, color:'#3d5a09' }}>{label}</span>
+                      style={{ accentColor:'#00B15A' }}/>
+                    <span style={{ fontWeight:600, color:'#3d5a09' }}>{label}</span>
                   </label>
                 ))}
               </div>
-              <p style={{ fontSize:'11px', color:'#7a8060', marginBottom:'8px', fontWeight:600 }}>
-                Vista previa — Zebra ZC300 (85.6 × 54 mm)
+
+              <p style={{ fontSize:'11px', color:'#7a8060', marginBottom:'10px', fontWeight:600 }}>
+                Vista previa — Credencial PVEM (formato cartera)
               </p>
+
+              {/* CREDENCIAL PREVIEW */}
               <div id="cred-preview" style={{
-                width:'323px', height:'204px',
-                background:'linear-gradient(135deg,#f8fef0 0%,#eef6d0 100%)',
-                border:'2px solid #C8DF8E', borderRadius:'12px',
-                padding:'14px', display:'flex', gap:'12px', alignItems:'flex-start',
-                position:'relative', overflow:'hidden', margin:'0 auto',
+                width:'340px', height:'214px',
+                display:'flex', margin:'0 auto',
+                fontFamily:"'Arial',sans-serif",
+                border:'3px solid #2d6600',
+                borderRadius:'8px',
+                overflow:'hidden',
+                boxShadow:'0 4px 20px rgba(0,0,0,.25)',
               }}>
-                <div style={{ position:'absolute', top:0, left:0, right:0, height:'5px',
-                  background:'linear-gradient(90deg,#3d5a09,#00B15A)' }}/>
-                <div style={{ position:'absolute', top:'10px', right:'10px',
-                  width:'28px', height:'28px', borderRadius:'50%',
-                  background:'linear-gradient(135deg,#5a8012,#00B15A)',
-                  display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <span style={{ color:'#fff', fontSize:'14px', fontWeight:900 }}>V</span>
-                </div>
-                {credFields['foto'] && (
-                  <div style={{ flexShrink:0 }}>
-                    {credModal.foto
-                      ? <img src={credModal.foto} style={{ width:'64px', height:'80px', objectFit:'cover', borderRadius:'8px', border:'2px solid #C8DF8E', marginTop:'6px' }}/>
-                      : <div style={{ width:'64px', height:'80px', borderRadius:'8px',
-                          background:'#eef6d0', border:'2px dashed #C8DF8E',
-                          display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', marginTop:'6px' }}>👤</div>}
+                {/* LADO IZQUIERDO */}
+                <div style={{
+                  width:'55%', background:'#fff',
+                  borderRight:'2px solid #2d6600',
+                  display:'flex', flexDirection:'column',
+                  padding:'8px',
+                }}>
+                  {/* Header verde */}
+                  <div style={{
+                    background:'linear-gradient(135deg,#1a4000,#2d6600)',
+                    margin:'-8px -8px 6px -8px',
+                    padding:'5px 8px',
+                    display:'flex', alignItems:'center', justifyContent:'space-between',
+                  }}>
+                    <div style={{ color:'#fff', fontSize:'7px', fontWeight:900, lineHeight:1.2 }}>
+                      PARTIDO VERDE<br/>ECOLOGISTA DE<br/>MÉXICO
+                    </div>
+                    <div style={{
+                      background:'#fff', borderRadius:'4px',
+                      padding:'3px 5px', display:'flex', alignItems:'center', gap:'3px'
+                    }}>
+                      <div style={{
+                        width:'18px', height:'18px', background:'linear-gradient(135deg,#1a4000,#3d8000)',
+                        borderRadius:'3px', display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:'10px', fontWeight:900, color:'#fff'
+                      }}>V</div>
+                      <div style={{ fontSize:'7px', fontWeight:900, color:'#1a4000', lineHeight:1.1 }}>
+                        VERDE<br/>SONORA
+                      </div>
+                    </div>
                   </div>
-                )}
-                <div style={{ flex:1, marginTop:'8px' }}>
-                  {credFields['nombre'] && <div style={{ fontSize:'14px', fontWeight:800, color:'#2e4a08', lineHeight:1.2, marginBottom:'2px' }}>{credModal.nombre}</div>}
-                  {credFields['rol'] && <div style={{ fontSize:'10px', fontWeight:700, color:'#fff', background:'linear-gradient(135deg,#5a8012,#00B15A)', display:'inline-block', padding:'2px 8px', borderRadius:'10px', marginBottom:'6px' }}>{credModal.rol}</div>}
-                  <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
-                    {credFields['celular'] && credModal.celular && <div style={{ fontSize:'10px', color:'#4a5030' }}>📱 {credModal.celular}</div>}
-                    {credFields['municipio'] && credModal.municipio && <div style={{ fontSize:'10px', color:'#4a5030' }}>📍 {credModal.municipio}</div>}
-                    {credFields['distrito'] && credModal.distrito && <div style={{ fontSize:'10px', color:'#4a5030' }}>🗳️ Dist. {credModal.distrito}</div>}
-                    {credFields['folio'] && credModal.folio && <div style={{ fontSize:'10px', color:'#4a5030' }}>📄 Folio: {credModal.folio}</div>}
-                    {credFields['casilla'] && credModal.casilla && <div style={{ fontSize:'10px', color:'#4a5030' }}>🏛️ Secc. {credModal.casilla}</div>}
-                    {credFields['banco'] && credModal.banco && <div style={{ fontSize:'10px', color:'#4a5030' }}>🏦 {credModal.banco}</div>}
-                    {credFields['cuenta'] && credModal.cuenta && <div style={{ fontSize:'10px', color:'#4a5030' }}>💳 {credModal.cuenta}</div>}
-                    {credFields['status'] && credModal.status?.length > 0 && <div style={{ fontSize:'10px', color:'#4a5030' }}>{(credModal.status as string[]).join(' · ')}</div>}
+
+                  {/* Foto */}
+                  {credFields['foto'] && (
+                    <div style={{ display:'flex', justifyContent:'center', marginBottom:'4px' }}>
+                      {credModal.foto
+                        ? <img src={credModal.foto} style={{ width:'52px', height:'62px', objectFit:'cover', border:'2px solid #2d6600' }}/>
+                        : <div style={{ width:'52px', height:'62px', background:'#e8f5e0',
+                            border:'2px solid #2d6600', display:'flex', alignItems:'center',
+                            justifyContent:'center', fontSize:'18px' }}>👤</div>
+                      }
+                    </div>
+                  )}
+
+                  {/* Nombre */}
+                  {credFields['nombre'] && (
+                    <div style={{ textAlign:'center', fontSize:'7px', fontWeight:700,
+                      color:'#000', marginBottom:'4px', lineHeight:1.2 }}>
+                      {credModal.nombre}
+                    </div>
+                  )}
+
+                  {/* Datos */}
+                  <div style={{ fontSize:'6.5px', color:'#000', lineHeight:1.6 }}>
+                    {credFields['folio'] && credModal.folio && (
+                      <div><strong>FOLIO:</strong> {credModal.folio}</div>
+                    )}
+                    {credFields['rol'] && (
+                      <div><strong>CARGO:</strong> {credModal.rol?.toUpperCase()}</div>
+                    )}
+                    {credFields['seccion'] && credModal.casilla && (
+                      <div><strong>SECCIÓN:</strong> {String(credModal.casilla).padStart(4,'0')}</div>
+                    )}
+                    {credFields['municipio'] && credModal.municipio && (
+                      <div><strong>MUNICIPIO:</strong> {credModal.municipio?.toUpperCase()}</div>
+                    )}
+                    {credFields['distrito_local'] && credModal.distrito_local && (
+                      <div><strong>DIST. LOCAL:</strong> {String(credModal.distrito_local).padStart(2,'0')}</div>
+                    )}
+                    {credFields['distrito_federal'] && credModal.distrito_federal && (
+                      <div><strong>DIST. FEDERAL:</strong> {String(credModal.distrito_federal).padStart(2,'0')}</div>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div style={{ marginTop:'auto', borderTop:'1px solid #2d6600', paddingTop:'3px',
+                    fontSize:'6px', fontWeight:900, color:'#1a4000', textAlign:'center', lineHeight:1.3 }}>
+                    {credModal.nombre}
+                    <div style={{ fontWeight:400 }}>{credModal.rol?.toUpperCase()}</div>
                   </div>
                 </div>
-                <div style={{ position:'absolute', bottom:'6px', left:'14px', right:'14px',
-                  borderTop:'1px solid rgba(143,191,37,.3)', paddingTop:'4px',
-                  display:'flex', justifyContent:'space-between' }}>
-                  <span style={{ fontSize:'8px', color:'#8FBF25', fontWeight:700 }}>ECOSABANA Sonora 2027</span>
-                  <span style={{ fontSize:'8px', color:'#8FBF25', fontWeight:700 }}>PVEM</span>
+
+                {/* LADO DERECHO */}
+                <div style={{
+                  width:'45%', background:'#fff',
+                  display:'flex', flexDirection:'column',
+                  alignItems:'center', padding:'8px 6px',
+                  gap:'4px',
+                }}>
+                  {/* Header */}
+                  <div style={{
+                    fontSize:'7px', fontWeight:900, color:'#1a4000',
+                    textAlign:'center', lineHeight:1.3, marginBottom:'2px'
+                  }}>
+                    SÍGUENOS EN NUESTRAS<br/>REDES SOCIALES
+                  </div>
+
+                  {/* Mascota */}
+                  <img src={MASCOT_SRC} alt="Mascota" style={{ width:'60px', height:'60px', objectFit:'contain' }}/>
+
+                  {/* QR placeholder */}
+                  <div style={{
+                    width:'54px', height:'54px',
+                    border:'2px solid #2d6600', borderRadius:'4px',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    background:'#f0f0f0', fontSize:'18px'
+                  }}>
+                    🔲
+                  </div>
+
+                  {/* Fecha */}
+                  <div style={{ fontSize:'6px', color:'#555', textAlign:'center', lineHeight:1.5, marginTop:'auto' }}>
+                    <div>Expedición: {new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase()}</div>
+                    <div>Vigencia: 31/DIC/2027</div>
+                  </div>
                 </div>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }} onClick={() => setCredModal(null)}>Cerrar</button>
+              <button className="btn" style={{ background:'#F2F4EE', border:'1px solid #D4D8C8' }}
+                onClick={() => setCredModal(null)}>Cerrar</button>
               <button className="btn" style={{ background:'#1a73c8', color:'#fff', fontWeight:700 }}
                 onClick={() => {
                   const preview = document.getElementById('cred-preview')
                   if (!preview) return
-                  const w = window.open('', '_blank', 'width=400,height=300')
+                  const w = window.open('', '_blank', 'width=500,height=350')
                   if (!w) return
                   w.document.write(`<!DOCTYPE html><html><head>
-                    <title>Credencial</title>
-                    <style>@page{size:85.6mm 54mm;margin:0}body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>
-                  </head><body>${preview.outerHTML}<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),500)}<\/script></body></html>`)
+                    <title>Credencial — ${credModal.nombre}</title>
+                    <style>
+                      @page { size: 85.6mm 54mm; margin: 0; }
+                      body { margin: 0; padding: 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+                    </style>
+                  </head><body>
+                    ${preview.outerHTML}
+                    <script>window.onload=()=>{window.print();setTimeout(()=>window.close(),800)}<\/script>
+                  </body></html>`)
                   w.document.close()
                 }}>
                 🖨️ Imprimir
