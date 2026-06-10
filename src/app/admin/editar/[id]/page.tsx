@@ -413,6 +413,10 @@ export default function EditarPersonaAdmin(){
                   {DIST_FED.map(d=><option key={d} value={d}>Distrito {d}</option>)}
                 </select>
               </div>
+              <div className="form-group">
+                <label>Sección Asignada <span style={{fontSize:'10px',color:'#7a8060'}}>(solo admin)</span></label>
+                <input type="text" value={form.seccion_asignada||''} onChange={e=>set('seccion_asignada',e.target.value)} placeholder="Asignar sección"/>
+              </div>
 
               <Sub>💳 Datos de Pago</Sub>
               <div className="form-group">
@@ -426,14 +430,8 @@ export default function EditarPersonaAdmin(){
                 <label>Número de cuenta</label>
                 <input type="text" value={form.cuenta} onChange={e=>set('cuenta',e.target.value)}/>
               </div>
-              <div className="form-group">
-                <label>Folio</label>
-                <input type="text" value={form.folio} onChange={e=>set('folio',e.target.value)}/>
-              </div>
-              <div className="form-group">
-                <label>Sección Asignada <span style={{fontSize:'10px',color:'#7a8060'}}>(solo admin)</span></label>
-                <input type="text" value={form.seccion_asignada||''} onChange={e=>set('seccion_asignada',e.target.value)} placeholder="Asignar sección"/>
-              </div>
+
+
 
               <Sub>📊 Status</Sub>
               <div className="form-group full">

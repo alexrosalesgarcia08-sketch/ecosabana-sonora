@@ -437,10 +437,7 @@ export default function NuevaPersonaUsuario() {
                 <label>Número de cuenta</label>
                 <input type="text" value={form.cuenta} onChange={e=>set('cuenta',e.target.value)} placeholder="Número de cuenta"/>
               </div>
-              <div className="form-group">
-                <label>Folio</label>
-                <input type="text" value={form.folio} onChange={e=>set('folio',e.target.value)}/>
-              </div>
+
 
 
               <SectionTitle>📊 Status</SectionTitle>

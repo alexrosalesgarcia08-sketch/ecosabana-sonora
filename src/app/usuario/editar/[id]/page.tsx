@@ -426,10 +426,7 @@ export default function EditarPersonaUsuario(){
                 <label>Número de cuenta</label>
                 <input type="text" value={form.cuenta} onChange={e=>set('cuenta',e.target.value)}/>
               </div>
-              <div className="form-group">
-                <label>Folio</label>
-                <input type="text" value={form.folio} onChange={e=>set('folio',e.target.value)}/>
-              </div>
+
 
 
               <Sub>📊 Status</Sub>
