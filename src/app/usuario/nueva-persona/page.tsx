@@ -227,7 +227,6 @@ export default function NuevaPersonaUsuario() {
           <div className="modal-body">
             <div className="form-grid">
 
-              {/* ROL - primero para condicionar el resto */}
               <div className="form-group full">
                 <label>Rol <span className="req">*</span></label>
                 <select className="form-select" value={form.rol} onChange={e=>set('rol',e.target.value)}>
@@ -235,6 +234,14 @@ export default function NuevaPersonaUsuario() {
                   <option>Ecoperador</option><option>RG</option>
                   <option>RC</option><option>Observador</option>
                 </select>
+              </div>
+
+              <div className="form-group full">
+                <label>📅 Fecha de registro</label>
+                <input type="date" value={form.fecha_registro}
+                  onChange={e=>set('fecha_registro',e.target.value)}
+                  style={{padding:'8px 12px',border:'1.5px solid #D4D8C8',borderRadius:'9px',
+                    fontSize:'13px',fontFamily:'var(--font)',width:'220px'}}/>
               </div>
 
               {/* ENLACE CON RG - solo para RC y Observador */}
@@ -269,9 +276,7 @@ export default function NuevaPersonaUsuario() {
                   {rgSeleccionado && (
                     <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'6px',
                       padding:'8px 12px',background:'#eef6d0',borderRadius:'8px',border:'1px solid #C8DF8E'}}>
-                      <span style={{fontSize:'12px',fontWeight:700,color:'#2e4a08'}}>
-                        ✓ RG: {rgSeleccionado.nombre}
-                      </span>
+                      <span style={{fontSize:'12px',fontWeight:700,color:'#2e4a08'}}>✓ RG: {rgSeleccionado.nombre}</span>
                       <button type="button" onClick={()=>{setRgSeleccionado(null);setRgSearch('')}}
                         style={{background:'none',border:'none',cursor:'pointer',color:'#EF4135',fontSize:'16px',padding:0}}>×</button>
                     </div>
@@ -279,31 +284,29 @@ export default function NuevaPersonaUsuario() {
                 </div>
               )}
 
-              {/* ENLACE CON ECOPERADOR - solo para RG, RC y Observador */}
+              {/* ENLACE CON ECOPERADOR */}
               {(form.rol === 'RG' || form.rol === 'RC' || form.rol === 'Observador') && (
                 <div className="form-group full">
                   <label>🔗 Enlazar con Ecoperador</label>
                   <div style={{position:'relative'}}>
-                    <input
-                      type="text"
+                    <input type="text"
                       value={ecoSeleccionado ? ecoSeleccionado.nombre : ecoSearch}
-                      onChange={e => { setEcoSeleccionado(null); searchEco(e.target.value) }}
-                      placeholder="Buscar Ecoperador por nombre..."
-                    />
-                    {ecoResults.length > 0 && !ecoSeleccionado && (
+                      onChange={e=>{setEcoSeleccionado(null);searchEco(e.target.value)}}
+                      placeholder="Buscar Ecoperador por nombre..."/>
+                    {ecoResults.length>0 && !ecoSeleccionado && (
                       <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:100,
                         background:'#fff',border:'1.5px solid #C8DF8E',borderRadius:'10px',
                         boxShadow:'0 8px 24px rgba(0,0,0,.12)',overflow:'hidden'}}>
-                        {ecoResults.map((eco:any) => (
+                        {ecoResults.map((eco:any)=>(
                           <div key={eco.id}
-                            onClick={() => { setEcoSeleccionado(eco); setEcoResults([]) }}
+                            onClick={()=>{setEcoSeleccionado(eco);setEcoResults([])}}
                             style={{padding:'10px 14px',cursor:'pointer',borderBottom:'1px solid #eef3e0',
                               fontSize:'13px',fontWeight:600,color:'#2e4a08'}}
                             onMouseEnter={e=>(e.currentTarget.style.background='#eef6d0')}
                             onMouseLeave={e=>(e.currentTarget.style.background='#fff')}>
                             {eco.nombre}
                             <span style={{fontSize:'11px',color:'#7a8060',marginLeft:'8px'}}>
-                              {eco.municipio} {eco.celular?'· '+eco.celular:''}
+                              {eco.municipio}{eco.celular?' · '+eco.celular:''}
                             </span>
                           </div>
                         ))}
@@ -313,34 +316,16 @@ export default function NuevaPersonaUsuario() {
                   {ecoSeleccionado && (
                     <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'6px',
                       padding:'8px 12px',background:'#eef6d0',borderRadius:'8px',border:'1px solid #C8DF8E'}}>
-                      <span style={{fontSize:'12px',fontWeight:700,color:'#2e4a08'}}>
-                        ✓ Enlazado con: {ecoSeleccionado.nombre}
-                      </span>
+                      <span style={{fontSize:'12px',fontWeight:700,color:'#2e4a08'}}>✓ Eco: {ecoSeleccionado.nombre}</span>
                       <button type="button" onClick={()=>{setEcoSeleccionado(null);setEcoSearch('')}}
                         style={{background:'none',border:'none',cursor:'pointer',color:'#EF4135',fontSize:'16px',padding:0}}>×</button>
                     </div>
                   )}
-                  <small style={{color:'#7a8060',fontSize:'11px'}}>
-                    Opcional — permite al admin ver la jerarquía de estructura
-                  </small>
                 </div>
               )}
 
-              {/* FECHA DE REGISTRO */}
-              <div className="form-group full">
-                <label>📅 Fecha de registro</label>
-                <input type="date" value={form.fecha_registro}
-                  onChange={e=>set('fecha_registro',e.target.value)}
-                  style={{padding:'8px 12px',border:'1.5px solid #D4D8C8',borderRadius:'9px',
-                    fontSize:'13px',fontFamily:'var(--font)',width:'220px'}}/>
-                <small style={{color:'#7a8060',fontSize:'11px',marginTop:'3px'}}>
-                  Puedes cambiar la fecha si la persona fue registrada en otra fecha
-                </small>
-              </div>
+              <div className="section-title" style={{gridColumn:'1/-1',marginTop:'8px'}}>📋 Datos Generales</div>
 
-              <SectionTitle>📋 Datos Generales</SectionTitle>
-
-              {/* NOMBRE */}
               <div className="form-group full">
                 <label>Nombre completo (MAYÚSCULAS) <span className="req">*</span></label>
                 <input type="text" value={form.nombre}
@@ -354,7 +339,6 @@ export default function NuevaPersonaUsuario() {
                 <label>Teléfono <span className="req">*</span></label>
                 <input type="tel" value={form.telefono} onChange={e=>set('telefono',e.target.value)} placeholder="10 dígitos"/>
               </div>
-
               <div className="form-group">
                 <label>Sexo <span className="req">*</span></label>
                 <select className="form-select" value={form.sexo} onChange={e=>set('sexo',e.target.value)}>
@@ -363,13 +347,15 @@ export default function NuevaPersonaUsuario() {
                   <option value="F">Femenino</option>
                 </select>
               </div>
-
               <div className="form-group">
                 <label>Edad <span className="req">*</span></label>
                 <input type="number" value={form.edad} onChange={e=>set('edad',e.target.value)} min="18" max="99" placeholder="Años"/>
               </div>
-
               <div className="form-group">
+                <label>Folio</label>
+                <input type="text" value={form.folio} onChange={e=>set('folio',e.target.value)}/>
+              </div>
+              <div className="form-group full">
                 <label>Clave de Elector</label>
                 <input type="text" value={form.clave_elector}
                   onChange={e=>{set('clave_elector',e.target.value.toUpperCase());checkDupClave(e.target.value)}}
@@ -377,8 +363,7 @@ export default function NuevaPersonaUsuario() {
                 {dupClave && <p style={{color:'#EF4135',fontSize:'11px',fontWeight:700,marginTop:'3px'}}>{dupClave}</p>}
               </div>
 
-              <SectionTitle>🏠 Dirección</SectionTitle>
-
+              <div style={{gridColumn:'1/-1',marginTop:'12px',marginBottom:'2px',fontSize:'13px',fontWeight:700,color:'#5a7a20',borderBottom:'1px solid #dde8bb',paddingBottom:'5px'}}>🏠 Dirección</div>
               <div className="form-group">
                 <label>Calle <span className="req">*</span></label>
                 <input type="text" value={form.calle} onChange={e=>set('calle',e.target.value)} placeholder="Nombre de la calle"/>
@@ -400,8 +385,7 @@ export default function NuevaPersonaUsuario() {
                 <input type="text" value={form.seccion_electoral} onChange={e=>set('seccion_electoral',e.target.value)} placeholder="Sección"/>
               </div>
 
-              <SectionTitle>🗺️ Ubicación Electoral</SectionTitle>
-
+              <div style={{gridColumn:'1/-1',marginTop:'12px',marginBottom:'2px',fontSize:'13px',fontWeight:700,color:'#5a7a20',borderBottom:'1px solid #dde8bb',paddingBottom:'5px'}}>🗺️ Ubicación Electoral</div>
               <div className="form-group">
                 <label>Municipio <span className="req">*</span></label>
                 <select className="form-select" value={form.municipio} onChange={e=>set('municipio',e.target.value)}>
@@ -425,8 +409,7 @@ export default function NuevaPersonaUsuario() {
               </div>
 
 
-              <SectionTitle>💳 Datos de Pago</SectionTitle>
-
+              <div style={{gridColumn:'1/-1',marginTop:'12px',marginBottom:'2px',fontSize:'13px',fontWeight:700,color:'#5a7a20',borderBottom:'1px solid #dde8bb',paddingBottom:'5px'}}>💳 Datos de Pago</div>
               <div className="form-group">
                 <label>Banco</label>
                 <select className="form-select" value={form.banco} onChange={e=>set('banco',e.target.value)}>
@@ -439,9 +422,7 @@ export default function NuevaPersonaUsuario() {
                 <input type="text" value={form.cuenta} onChange={e=>set('cuenta',e.target.value)} placeholder="Número de cuenta"/>
               </div>
 
-
-
-              <SectionTitle>📊 Status</SectionTitle>
+              <div style={{gridColumn:'1/-1',marginTop:'12px',marginBottom:'2px',fontSize:'13px',fontWeight:700,color:'#5a7a20',borderBottom:'1px solid #dde8bb',paddingBottom:'5px'}}>📊 Status</div>
               <div className="form-group full">
                 <div className="status-checks">
                   {STATUS_OPTS.map((s,i)=>(
@@ -453,7 +434,7 @@ export default function NuevaPersonaUsuario() {
                 </div>
               </div>
 
-              <SectionTitle>📝 Observaciones y Notas</SectionTitle>
+              <div style={{gridColumn:'1/-1',marginTop:'12px',marginBottom:'2px',fontSize:'13px',fontWeight:700,color:'#5a7a20',borderBottom:'1px solid #dde8bb',paddingBottom:'5px'}}>📝 Observaciones y Notas</div>
               <div className="form-group">
                 <label>Observaciones</label>
                 <textarea value={form.observaciones} onChange={e=>set('observaciones',e.target.value)}
@@ -469,10 +450,7 @@ export default function NuevaPersonaUsuario() {
                     fontSize:'13px',width:'100%',fontFamily:'var(--font)',resize:'vertical'}}/>
               </div>
 
-              <SectionTitle>📸 Fotografías <span style={{color:'#EF4135',fontSize:'11px',fontWeight:600}}>(Todas obligatorias)</span></SectionTitle>
-
-              {/* Foto perfil */}
-              
+              <div className="section-title" style={{gridColumn:'1/-1',marginTop:'8px'}}>📸 Fotografías <span style={{color:'#EF4135',fontSize:'11px',fontWeight:600}}>(Todas obligatorias)</span></div>
 
               <FotoUpload label="INE Anverso (frente)" fkey="foto_ine_anverso" form={form} set={set} inputRef={ineAnvRef}
                 hint="Foto del frente de la INE. Sin flash, sin brillos, fondo neutro. Asegúrate que se vea el nombre y la foto claramente."/>
@@ -481,9 +459,9 @@ export default function NuevaPersonaUsuario() {
               <FotoUpload label="Foto Selfie" fkey="foto_selfie" form={form} set={set} inputRef={selfieRef}
                 hint="Foto selfie de frente. Sin poses, sin lentes, sin gorra, buena iluminación. Fondo neutro preferible."/>
 
-              {/* ECOPERADOR: RG y RCs dinámicos */}
-              {form.rol==='Ecoperador' && <>
-                <SectionTitle>👤 Datos del RG</SectionTitle>
+              {/* ECOPERADOR: RG + RCs */}
+              {form.rol === 'Ecoperador' && <>
+                <div style={{gridColumn:'1/-1',marginTop:'12px',marginBottom:'2px',fontSize:'13px',fontWeight:700,color:'#5a7a20',borderBottom:'1px solid #dde8bb',paddingBottom:'5px'}}>👤 Datos del RG</div>
                 <div className="form-group full">
                   <label>Nombre del RG *</label>
                   <input type="text" value={form.rg_nombre} onChange={e=>set('rg_nombre',e.target.value.toUpperCase())} style={{textTransform:'uppercase'}}/>
@@ -527,7 +505,9 @@ export default function NuevaPersonaUsuario() {
                   <input type="text" value={form.rg_cuenta} onChange={e=>set('rg_cuenta',e.target.value)}/>
                 </div>
 
-                <div className="section-title" style={{gridColumn:'1/-1',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div style={{gridColumn:'1/-1',display:'flex',justifyContent:'space-between',alignItems:'center',
+                  marginTop:'12px',marginBottom:'2px',fontSize:'13px',fontWeight:700,color:'#5a7a20',
+                  borderBottom:'1px solid #dde8bb',paddingBottom:'5px'}}>
                   <span>📋 RCs</span>
                   <button type="button" onClick={addRC}
                     style={{background:'#00B15A',color:'#fff',border:'none',borderRadius:'8px',
@@ -536,7 +516,7 @@ export default function NuevaPersonaUsuario() {
                   </button>
                 </div>
 
-                {rcs.map((rc,i)=>(
+                {rcs.map((rc:any,i:number)=>(
                   <div key={i} className="form-group full">
                     <div className="subsection">
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
@@ -594,12 +574,9 @@ export default function NuevaPersonaUsuario() {
                         </div>
                       </div>
 
-                      {/* Observadores del RC */}
                       {(rc.nombre||rc.tel) && (
                         <div style={{marginTop:'10px',padding:'10px',background:'rgba(143,191,37,.08)',borderRadius:'8px',border:'1px solid #C8DF8E'}}>
-                          <div style={{fontSize:'12px',fontWeight:700,color:'#3d5a09',marginBottom:'8px'}}>
-                            👁️ Observadores de RC #{rc.num}
-                          </div>
+                          <div style={{fontSize:'12px',fontWeight:700,color:'#3d5a09',marginBottom:'8px'}}>👁️ Observadores de RC #{rc.num}</div>
                           {['1','2'].map(num=>(
                             <div key={num} style={{marginBottom:'8px'}}>
                               <div style={{fontSize:'11px',fontWeight:600,color:'#5a7a20',marginBottom:'4px'}}>Observador {num}</div>
